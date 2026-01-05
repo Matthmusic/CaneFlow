@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "version": "1.0.0",
+  "app": {
+    "id": "caneflow",
+    "name": "CaneFlow",
+    "version": "0.0.1",
+    "description": {
+      "short": "Conversion rapide de carnets de câbles Caneco vers Multidoc",
+      "long": "CaneFlow est une application Electron moderne qui convertit automatiquement les carnets de câbles exportés depuis Caneco en fichiers Excel compatibles Multidoc. Interface intuitive avec prévisualisation, tarification par ligne ou par type de câble, et gestion de la TVA. Simplifie le workflow de chiffrage électrique en automatisant la conversion des données."
+    }
+  },
+  "resources": {
+    "logo": {
+      "path": "public/logo.svg",
+      "url": "https://raw.githubusercontent.com/Matthmusic/CaneFlow/main/public/logo.svg"
+    },
+    "icon": {
+      "path": "electron/caneflow.ico",
+      "url": "https://raw.githubusercontent.com/Matthmusic/CaneFlow/main/electron/caneflow.ico"
+    }
+  },
+  "detection": {
+    "windows": {
+      "files": [
+        {
+          "path": "C:\\Program Files\\CaneFlow\\CaneFlow.exe",
+          "description": "Installation standard 64-bit"
+        },
+        {
+          "path": "%LOCALAPPDATA%\\Programs\\CaneFlow\\CaneFlow.exe",
+          "description": "Installation utilisateur"
+        }
+      ],
+      "directories": [
+        {
+          "path": "%APPDATA%\\caneflow",
+          "description": "Dossier de données utilisateur"
+        },
+        {
+          "path": "%LOCALAPPDATA%\\caneflow",
+          "description": "Dossier de cache local"
+        }
+      ],
+      "registry": [
+        {
+          "key": "HKEY_CURRENT_USER\\SOFTWARE\\caneflow",
+          "description": "Clé d'installation utilisateur"
+        }
+      ]
+    },
+    "priority": "files"
+  },
+  "metadata": {
+    "author": {
+      "name": "Matthmusic",
+      "url": "https://github.com/Matthmusic"
+    },
+    "category": "Productivité",
+    "tags": [
+      "productivite",
+      "electrique",
+      "caneco",
+      "multidoc",
+      "chiffrage",
+      "electron",
+      "excel"
+    ],
+    "repository": {
+      "type": "github",
+      "url": "https://github.com/Matthmusic/CaneFlow",
+      "branch": "main"
+    },
+    "license": "MIT",
+    "compatibility": {
+      "os": ["windows"],
+      "minVersion": "Windows 10"
+    }
+  },
+  "installation": {
+    "type": "installer",
+    "downloadUrl": "https://github.com/Matthmusic/CaneFlow/releases/latest/download/CaneFlow-0.0.1-Setup.exe"
+  },
+  "changelog": {
+    "0.0.1": {
+      "date": "2026-01-05",
+      "changes": [
+        "Première version de CaneFlow",
+        "Import de carnets de câbles Caneco (.xls/.xlsx)",
+        "Conversion automatique .xls → .xlsx via Excel",
+        "Prévisualisation des lignes avant export",
+        "Tarification par ligne ou par type de câble",
+        "Gestion de la TVA globale",
+        "Export vers format Multidoc",
+        "Système de mise à jour automatique",
+        "Interface moderne avec thème sombre"
+      ]
+    }
+  }
+}

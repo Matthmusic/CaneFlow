@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run type-check:*)",
+      "Bash(npm run:*)",
+      "Bash(cat:*)",
+      "Bash(dir \"c:\\\\DEV\\\\CaneFlow\\\\_templates\\\\RENDEXPRESS\" /s)",
+      "Bash(dir:*)",
+      "Bash(findstr:*)",
+      "Bash(ls -la \"c:\\\\DEV\\\\CaneFlow\\\\python_backend\"\" 2>&1 || echo \"Directory not found \")",
+      "Bash(git init:*)",
+      "Bash(git remote add:*)",
+      "Bash(git fetch:*)",
+      "Bash(git branch:*)",
+      "Bash(git add:*)",
+      "Bash(del nul)",
+      "Bash(powershell -Command:*)"
+    ]
+  }
+}
