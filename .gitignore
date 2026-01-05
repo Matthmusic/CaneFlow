@@ -26,7 +26,7 @@ dist-ssr
 # Build outputs
 *.exe
 *.blockmap
-*.yml
+/dist/*.yml
 
 # Problematic Windows reserved filename
 nul
