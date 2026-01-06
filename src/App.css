@@ -371,6 +371,13 @@
   border-radius: 14px;
   padding: 12px;
   margin: 8px 0 16px;
+  transition: all 0.2s ease;
+}
+
+.path-box.dragging {
+  border-color: #636eff;
+  background: rgba(99, 110, 255, 0.1);
+  transform: scale(1.02);
 }
 
 .label {

@@ -45,6 +45,7 @@ function App() {
   const [toast, setToast] = useState<{ message: string; type: 'info' | 'error' | 'update' } | null>(null)
   const [toastTimeout, setToastTimeout] = useState<ReturnType<typeof setTimeout> | null>(null)
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>({ state: 'idle' })
+  const [isDragging, setIsDragging] = useState(false)
   const noDragStyle: CSSProperties = { WebkitAppRegion: 'no-drag' }
 
   const outputLabel = useMemo(() => {
@@ -316,6 +317,46 @@ function App() {
     await window.api.installUpdate()
   }
 
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+  }
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+
+    if (busy || !hasApi()) return
+
+    const files = Array.from(e.dataTransfer.files)
+    const excelFile = files.find((file) => {
+      const ext = file.name.toLowerCase()
+      return ext.endsWith('.xls') || ext.endsWith('.xlsx')
+    })
+
+    if (excelFile) {
+      setError('')
+      const filePath = (excelFile as any).path
+      if (filePath) {
+        setInputPath(filePath)
+        setOutputPath('')
+        setLastExport(null)
+        setStatus('Fichier charge. Pret a convertir.')
+        await loadPreview(filePath)
+      }
+    } else {
+      setError('Veuillez glisser un fichier Excel (.xls ou .xlsx)')
+    }
+  }
+
   return (
     <div className="app-shell">
       <div className="titlebar">
@@ -508,9 +549,20 @@ function App() {
               {inputPath ? <span className="pill">OK</span> : <span className="pill muted">En attente</span>}
             </div>
 
-            <div className="path-box">
+            <div
+              className={`path-box ${isDragging ? 'dragging' : ''}`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
               <p className="label">Fichier source</p>
-              <p className="path">{inputPath ? shortenPath(inputPath) : 'Aucun fichier selectionne.'}</p>
+              <p className="path">
+                {isDragging
+                  ? 'Deposer le fichier Excel ici...'
+                  : inputPath
+                    ? shortenPath(inputPath)
+                    : 'Aucun fichier selectionne (ou glisse un fichier ici)'}
+              </p>
             </div>
 
             <div className="buttons" style={noDragStyle}>
