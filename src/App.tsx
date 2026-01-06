@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
-import { CheckCircle2, FileSpreadsheet, FolderOpen, Info, Maximize2, Minus, RefreshCw, X as Close } from 'lucide-react'
+import { CheckCircle2, FileSpreadsheet, Info, Maximize2, Minus, RefreshCw, X as Close } from 'lucide-react'
 import './App.css'
 import logo from '../public/logo.svg'
 
@@ -224,19 +224,6 @@ function App() {
       console.error('pickInput', err)
       setError('Impossible de selectionner le fichier.')
       setStatus('Erreur de selection.')
-    }
-  }
-
-  const pickOutput = async () => {
-    setError('')
-    if (!hasApi()) return
-    try {
-      const selected = await window.api.pickOutputFile(inputPath)
-      if (!selected) return
-      setOutputPath(selected)
-    } catch (err) {
-      console.error('pickOutput', err)
-      setError('Impossible de selectionner le fichier de sortie.')
     }
   }
 
