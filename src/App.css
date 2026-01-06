@@ -277,6 +277,10 @@
   font-weight: 600;
 }
 
+.stat-value.error-text {
+  color: #fca5a5;
+}
+
 .stat-value-row {
   display: flex;
   align-items: center;

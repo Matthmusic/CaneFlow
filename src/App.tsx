@@ -190,8 +190,9 @@ function App() {
       console.log('[CaneFlow UI] preview done', { count: rows.length })
     } catch (err) {
       console.error('previewRows', err)
-      setError('Impossible de lire le fichier Excel.')
-      setStatus('Erreur de lecture.')
+      const errorMessage = err instanceof Error ? err.message : 'Impossible de lire le fichier Excel.'
+      setError(errorMessage)
+      setStatus('')
       setPreviewRows([])
       setCableTypes([])
       setTypePrices({})
@@ -290,8 +291,9 @@ function App() {
       showToast('Export Multidoc genere.', 'info')
     } catch (err) {
       console.error('convert', err)
-      setError(String(err))
-      setStatus('Erreur pendant la conversion.')
+      const errorMessage = err instanceof Error ? err.message : String(err)
+      setError(errorMessage)
+      setStatus('')
       showToast('Erreur de conversion.', 'error')
     } finally {
       setBusy(false)
@@ -455,7 +457,9 @@ function App() {
               <div className="stat">
                 <span className="stat-label">Etat</span>
                 <div className="stat-value-row">
-                  <span className="stat-value">{busy ? 'Conversion...' : loadingPreview ? 'Chargement...' : status}</span>
+                  <span className={`stat-value ${error ? 'error-text' : ''}`}>
+                    {error || (busy ? 'Conversion...' : loadingPreview ? 'Chargement...' : status)}
+                  </span>
                   {(busy || loadingPreview) && (
                     <RefreshCw size={16} className="spinner" />
                   )}
