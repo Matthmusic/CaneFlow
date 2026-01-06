@@ -27,6 +27,7 @@ dist-ssr
 *.exe
 *.blockmap
 /dist/*.yml
+/release/
 
 # Problematic Windows reserved filename
 nul

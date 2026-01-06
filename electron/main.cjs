@@ -9,11 +9,19 @@ const LOG_PREFIX = '[CaneFlow]'
 const isDev = !!process.env.VITE_DEV_SERVER_URL
 let mainWindow = null
 
+function canSendToMainWindow() {
+  return !!(mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents)
+}
+
+function sendToMainWindow(channel, payload) {
+  if (canSendToMainWindow()) {
+    mainWindow.webContents.send(channel, payload)
+  }
+}
+
 function sendLog(level, message, data = {}) {
   console[level](`${LOG_PREFIX} ${message}`, data)
-  if (mainWindow) {
-    mainWindow.webContents.send('app-log', { level, message, data, timestamp: new Date().toISOString() })
-  }
+  sendToMainWindow('app-log', { level, message, data, timestamp: new Date().toISOString() })
 }
 
 function buildDefaultOutputPath(inputPath) {
@@ -83,19 +91,19 @@ function wireAutoUpdater() {
   autoUpdater.autoDownload = false
 
   autoUpdater.on('update-available', (info) => {
-    if (mainWindow) mainWindow.webContents.send('update-event', { type: 'available', info })
+    sendToMainWindow('update-event', { type: 'available', info })
   })
   autoUpdater.on('update-not-available', () => {
-    if (mainWindow) mainWindow.webContents.send('update-event', { type: 'not-available' })
+    sendToMainWindow('update-event', { type: 'not-available' })
   })
   autoUpdater.on('error', (error) => {
-    if (mainWindow) mainWindow.webContents.send('update-event', { type: 'error', message: error.message })
+    sendToMainWindow('update-event', { type: 'error', message: error.message })
   })
   autoUpdater.on('download-progress', (progress) => {
-    if (mainWindow) mainWindow.webContents.send('update-event', { type: 'progress', progress })
+    sendToMainWindow('update-event', { type: 'progress', progress })
   })
   autoUpdater.on('update-downloaded', (info) => {
-    if (mainWindow) mainWindow.webContents.send('update-event', { type: 'downloaded', info })
+    sendToMainWindow('update-event', { type: 'downloaded', info })
   })
 }
 

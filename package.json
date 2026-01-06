@@ -3,7 +3,7 @@
   "description": "CaneFlow - conversion de carnets de cables Caneco vers Multidoc (Electron + React).",
   "author": "Matthieu Maurel",
   "private": true,
-  "version": "0.0.5",
+  "version": "0.0.6",
   "type": "commonjs",
   "main": "electron/main.cjs",
   "build": {
@@ -35,7 +35,7 @@
           ]
         }
       ],
-      "icon": "img/CaneFlow.ico",
+      "icon": "electron/caneflow.ico",
       "artifactName": "CaneFlow-${version}-Setup.${ext}"
     },
     "nsis": {
@@ -44,8 +44,8 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": "always",
       "createStartMenuShortcut": true,
-      "installerIcon": "img/CaneFlow.ico",
-      "uninstallerIcon": "img/CaneFlow.ico",
+      "installerIcon": "electron/caneflow.ico",
+      "uninstallerIcon": "electron/caneflow.ico",
       "installerSidebar": "electron/installerSidebar.bmp",
       "uninstallerSidebar": "electron/installerSidebar.bmp"
     }
