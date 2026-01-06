@@ -105,6 +105,7 @@ function createWindow() {
 function wireAutoUpdater() {
   if (isDev) return
   autoUpdater.autoDownload = false
+  autoUpdater.autoInstallOnAppQuit = true
 
   autoUpdater.on('update-available', (info) => {
     sendToMainWindow('update-event', { type: 'available', info })

@@ -216,7 +216,7 @@ function mapSheetRows(sheetRows, options = {}) {
       unitPrice,
       '',
       tva,
-      row.repere,
+      '',
     ])
 
     lineNumber += 1

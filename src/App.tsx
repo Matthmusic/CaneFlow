@@ -298,8 +298,8 @@ function App() {
 
   const downloadUpdate = async () => {
     if (!hasApi()) return
-    await window.api.downloadUpdate()
     setUpdateStatus((prev) => ({ ...prev, state: 'downloading' }))
+    window.api.downloadUpdate()
   }
 
   const installUpdate = async () => {
