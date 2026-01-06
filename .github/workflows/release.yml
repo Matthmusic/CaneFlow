@@ -14,8 +14,6 @@ jobs:
     runs-on: windows-latest
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      ELECTRON_CACHE: ${{ runner.temp }}\electron-cache
-      ELECTRON_BUILDER_CACHE: ${{ runner.temp }}\electron-builder-cache
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -38,16 +36,22 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ${{ env.ELECTRON_CACHE }}
-            ${{ env.ELECTRON_BUILDER_CACHE }}
+            ${{ runner.temp }}\electron-cache
+            ${{ runner.temp }}\electron-builder-cache
           key: electron-cache-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
           restore-keys: |
             electron-cache-${{ runner.os }}-
 
       - name: Install dependencies
+        env:
+          ELECTRON_CACHE: ${{ runner.temp }}\electron-cache
+          ELECTRON_BUILDER_CACHE: ${{ runner.temp }}\electron-builder-cache
         run: npm ci --prefer-offline --no-audit
 
       - name: Build app (exe)
+        env:
+          ELECTRON_CACHE: ${{ runner.temp }}\electron-cache
+          ELECTRON_BUILDER_CACHE: ${{ runner.temp }}\electron-builder-cache
         run: npm run build:electron -- --publish never
 
       - name: Upload artifact
