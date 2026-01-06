@@ -23,6 +23,7 @@
     "files": [
       "dist/**/*",
       "electron/**/*",
+      "img/**/*",
       "package.json"
     ],
     "win": {
@@ -32,7 +33,7 @@
           "arch": ["x64"]
         }
       ],
-      "icon": "electron/caneflow.ico",
+      "icon": "img/CaneFlow.ico",
       "artifactName": "CaneFlow-${version}-Setup.${ext}"
     },
     "nsis": {
