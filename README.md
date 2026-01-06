@@ -1,30 +1,100 @@
 # CaneFlow
 
-CaneFlow est une application Electron/React pour convertir un carnet de cables Caneco en fichier Excel compatible Multidoc.
+CaneFlow est une application Electron/React pour convertir un carnet de câbles Caneco en fichier Excel compatible Multidoc, en un clic.
 
 Version actuelle : v0.2.0
 
-## Demarrer
+## 📥 Installation
+
+1. Va sur la page des [Releases](https://github.com/VOTRE_USERNAME/CaneFlow/releases)
+2. Télécharge le fichier `.exe` du dernier tag (ex: `CaneFlow-Setup-0.2.0.exe`)
+3. Lance l'installateur
+4. C'est tout ! L'application vérifie automatiquement les mises à jour.
+
+## 🚀 Fonctionnement de l'app
+
+CaneFlow simplifie la conversion de carnets de câbles Caneco vers le format Multidoc en 3 étapes :
+
+### Étape 1 : Choisir le fichier source
+- Importe ton fichier Excel Caneco (.xls ou .xlsx)
+- Tu peux cliquer sur "Choisir un Excel" ou glisser-déposer le fichier
+- Les fichiers .xls sont automatiquement convertis via Microsoft Excel (doit être installé)
+- L'app charge automatiquement un aperçu des lignes détectées
+
+### Étape 2 : Définir les prix (optionnel)
+Deux modes de tarification au choix :
+- **Par ligne** : Définis un prix unitaire pour chaque ligne du carnet
+- **Par câble + type** : Définis un prix par catégorie de câble (colonne "Type de câble" dans Caneco)
+
+Tu peux aussi :
+- Définir un prix par défaut et l'appliquer à toutes les lignes/catégories
+- Ajouter un taux de TVA global
+
+### Étape 3 : Exporter vers Multidoc
+- Clique sur "Convertir" pour générer l'Excel Multidoc
+- Le fichier est enregistré avec les colonnes attendues par Multidoc
+- Clique sur "Ouvrir le dossier" pour accéder directement au fichier généré
+- Utilise "Nouvel export" pour recommencer une nouvelle conversion
+
+### Colonnes Caneco requises
+Ton export Caneco doit contenir ces colonnes dans cet ordre :
+1. Amont
+2. Descriptif
+3. Longueur
+4. Câble
+5. Neutre
+6. PE ou PEN
+7. Type de câble
+
+### Configuration Multidoc
+Dans Multidoc, configure les numéros de colonnes comme suit :
+- Numéros : 1
+- Titres : 2
+- Unités : 3
+- Quantités : 4
+- Prix unitaires : 5
+- Colonne vide : 6
+- TVA : 7
+- Descriptif : 8
+
+## 🛠️ Développement
+
+### Prérequis
+- Node.js 18+
+- Microsoft Excel (pour la conversion .xls → .xlsx)
+
+### Démarrer en dev
 
 ```bash
 npm install
 npm run electron:dev
 ```
 
-## Build Windows
+### Build Windows
 
 ```bash
 npm run build:electron
 ```
 
-## Conversion en ligne de commande
+Le build génère un installateur `.exe` dans le dossier `release/`.
+
+### Conversion en ligne de commande
 
 ```bash
 node scripts/convert.js --input "CARNET DE CABLES TGBT.xls" --prix 0 --tva 0
 ```
 
-## Notes
+## 📝 Notes techniques
 
-- L'icone Windows doit se trouver dans `electron/caneflow.ico`.
-- Les fichiers .xls sont convertis via Microsoft Excel (installe sur la machine).
-- Les mises a jour sont publiees via GitHub Releases.
+- L'icône Windows doit se trouver dans `electron/caneflow.ico`
+- Les fichiers .xls sont convertis via PowerShell + COM Automation Excel
+- Les mises à jour sont publiées via GitHub Releases et détectées automatiquement par l'app
+- La première ligne du fichier Excel (en-têtes de colonnes) est automatiquement ignorée
+- L'interface utilise React avec TypeScript et Vite
+
+## 🔄 Publier une nouvelle version
+
+1. Met à jour la version dans `package.json`
+2. Commit et push les changements
+3. Crée un tag git : `git tag v0.x.x && git push origin v0.x.x`
+4. GitHub Actions build automatiquement l'installateur et crée la Release
