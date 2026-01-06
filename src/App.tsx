@@ -230,7 +230,7 @@ function App() {
   const convert = async () => {
     setError('')
     if (!inputPath) {
-      setError('Selectionne un fichier Excel en entree.')
+      setError('Sélectionne un fichier Excel en entrée.')
       return
     }
     if (!hasApi()) {
@@ -359,6 +359,22 @@ function App() {
     setExpandedStep(step)
   }
 
+  const resetForNewExport = () => {
+    setInputPath('')
+    setOutputPath('')
+    setPreviewRows([])
+    setCableTypes([])
+    setTypePrices({})
+    setUnitPrices([])
+    setDefaultUnitPrice('0')
+    setTva('0')
+    setStatus('En attente de selection.')
+    setError('')
+    setLastExport(null)
+    setCurrentStep(1)
+    setExpandedStep(1)
+  }
+
   return (
     <div className="app-shell">
       <div className="titlebar">
@@ -400,7 +416,7 @@ function App() {
 
             <div className="modal-body">
               <p className="modal-text">
-                Exporte le carnet de cables Caneco avec les colonnes suivantes, puis charge le fichier dans CaneFlow.
+                Exporte le carnet de câbles Caneco avec les colonnes suivantes, puis charge le fichier dans CaneFlow.
               </p>
               <div className="info-table caneco">
                 <div className="info-row header">
@@ -408,34 +424,34 @@ function App() {
                 </div>
                 <div className="info-row caneco-columns">
                   <span>Amont</span>
-                  <span>Repere</span>
+                  <span>Repère</span>
                   <span>Longueur</span>
-                  <span>Cable</span>
+                  <span>Câble</span>
                   <span>Neutre</span>
                   <span>PE ou PEN</span>
-                  <span>Type de cable</span>
+                  <span>Type de câble</span>
                 </div>
               </div>
 
               <div className="modal-section">
-                <p className="label">Etapes</p>
+                <p className="label">Étapes</p>
                 <ol className="modal-list">
                   <li>Cliquer sur "Choisir un Excel", puis "Choisir la sortie".</li>
-                  <li>Etape 2: saisir les prix unitaires par ligne ou par cable + type, et la TVA globale.</li>
-                  <li>Cliquer sur "Convertir" pour generer l Excel Multidoc.</li>
+                  <li>Étape 2: saisir les prix unitaires par ligne ou par câble + type, et la TVA globale.</li>
+                  <li>Cliquer sur "Convertir" pour générer l'Excel Multidoc.</li>
                 </ol>
               </div>
 
               <div className="modal-section">
-                <p className="label">Reglages Multidoc</p>
-                <p className="modal-text">Dans Multidoc, regler les numeros de colonnes comme suit :</p>
+                <p className="label">Réglages Multidoc</p>
+                <p className="modal-text">Dans Multidoc, régler les numéros de colonnes comme suit :</p>
                 <div className="info-table mapping">
                   <div className="info-row header two-col">
                     <span>Champ</span>
-                    <span>Numero</span>
+                    <span>Numéro</span>
                   </div>
                   <div className="info-row">
-                    <span>Numeros</span>
+                    <span>Numéros</span>
                     <span>1</span>
                   </div>
                   <div className="info-row">
@@ -443,11 +459,11 @@ function App() {
                     <span>2</span>
                   </div>
                   <div className="info-row">
-                    <span>Unites</span>
+                    <span>Unités</span>
                     <span>3</span>
                   </div>
                   <div className="info-row">
-                    <span>Quantites</span>
+                    <span>Quantités</span>
                     <span>4</span>
                   </div>
                   <div className="info-row">
@@ -483,22 +499,29 @@ function App() {
               <img src={logo} alt="CaneFlow" className="logo" />
               <div className="logo-text">
                 <p className="eyebrow">CaneFlow</p>
-                <p className="subtext">Conversion rapide vers Multidoc</p>
               </div>
             </div>
-            <h1>Transforme un carnet de cables Caneco en Excel Multidoc, en un clic.</h1>
+            <h1>Transforme un carnet de câbles Caneco en Excel Multidoc</h1>
             <p className="lede">
-              Importe ton fichier Caneco, controle le tarif global, puis exporte un Excel pret a importer dans Multidoc.
+              Importe ton fichier Caneco, ajoute le prix unitaire par ligne ou par catégorie de câble, puis exporte un Excel prêt à importer dans Multidoc.{' '}
+              <button
+                className="info-inline-btn"
+                onClick={() => setShowInfo(true)}
+                aria-label="Voir les infos"
+                style={noDragStyle}
+              >
+                <Info size={16} />
+              </button>
             </p>
           </div>
           <div className="right-stack">
             <div className="stats" style={noDragStyle}>
               <div className="stat">
                 <span className="stat-label">Fichier</span>
-                <span className="stat-value">{inputPath ? 'Selectionne' : 'En attente'}</span>
+                <span className="stat-value">{inputPath ? 'Sélectionné' : 'En attente'}</span>
               </div>
               <div className="stat">
-                <span className="stat-label">Etat</span>
+                <span className="stat-label">État</span>
                 <div className="stat-value-row">
                   <span className={`stat-value ${error ? 'error-text' : ''}`}>
                     {error || (busy ? 'Conversion...' : loadingPreview ? 'Chargement...' : status)}
@@ -547,7 +570,7 @@ function App() {
               <div>
                 <p className="eyebrow subtle">Etape 1</p>
                 <h2>Choisir le fichier source</h2>
-                {expandedStep === 1 && <p className="hint">Selectionne l'export Caneco (.xls/.xlsx). Les .xls sont convertis via Excel.</p>}
+                {expandedStep === 1 && <p className="hint">Sélectionne l'export Caneco (.xls/.xlsx). Les .xls sont convertis via Excel.</p>}
                 {expandedStep !== 1 && currentStep >= 2 && inputPath && (
                   <p className="summary">{shortenPath(inputPath)}</p>
                 )}
@@ -613,12 +636,12 @@ function App() {
             <div className="panel-head" onClick={() => currentStep >= 2 && currentStep >= 3 && editStep(2)} style={currentStep >= 3 ? { cursor: 'pointer' } : {}}>
               <div>
                 <p className="eyebrow subtle">Etape 2</p>
-                <h2>Definir les prix</h2>
+                <h2>Définir les prix</h2>
                 {expandedStep === 2 && (
                   <p className="hint">
                     {priceMode === 'perLine'
                       ? 'Saisis un prix pour chaque ligne.'
-                      : 'Saisis un prix par cable (colonne D) et type (colonne G).'}
+                      : 'Saisis un prix par câble (colonne D) et type (colonne G).'}
                   </p>
                 )}
                 {expandedStep !== 2 && currentStep >= 3 && (
@@ -640,8 +663,8 @@ function App() {
                           ? `${previewRows.length} lignes`
                           : 'Aucune ligne'
                         : cableTypes.length
-                          ? `${cableTypes.length} cables + types`
-                          : 'Aucun cable + type'}
+                          ? `${cableTypes.length} câbles + types`
+                          : 'Aucun câble + type'}
                   </span>
                 )}
               </div>
@@ -660,7 +683,7 @@ function App() {
                 className={`btn ghost small ${priceMode === 'perCable' ? 'active' : ''}`}
                 onClick={() => setPriceMode('perCable')}
               >
-                Par cable + type
+                Par câble + type
               </button>
             </div>
 
@@ -698,8 +721,8 @@ function App() {
                 <div className="price-table" style={noDragStyle}>
                   <div className="price-row header lines">
                     <div className="price-cell">#</div>
-                    <div className="price-cell title">Designation</div>
-                    <div className="price-cell cable">Cable + type</div>
+                    <div className="price-cell title">Désignation</div>
+                    <div className="price-cell cable">Câble + type</div>
                     <div className="price-cell qty">Qt</div>
                     <div className="price-cell input">Prix</div>
                   </div>
@@ -728,7 +751,7 @@ function App() {
             ) : cableTypes.length ? (
               <div className="price-table" style={noDragStyle}>
                 <div className="price-row header types">
-                  <div className="price-cell title">Cable + type</div>
+                  <div className="price-cell title">Câble + type</div>
                   <div className="price-cell qty">Lignes</div>
                   <div className="price-cell input">Prix</div>
                 </div>
@@ -750,7 +773,7 @@ function App() {
                 ))}
               </div>
             ) : (
-              <div className="price-table-empty">Charge un fichier pour voir les cables + types.</div>
+              <div className="price-table-empty">Charge un fichier pour voir les câbles + types.</div>
             )}
 
             <div className="step-actions" style={noDragStyle}>
@@ -795,6 +818,11 @@ function App() {
                     <CheckCircle2 size={18} />
                     Ouvrir le dossier
                   </button>
+                  {lastExport && (
+                    <button className="btn new-export" onClick={resetForNewExport}>
+                      Nouvel export
+                    </button>
+                  )}
                 </div>
 
                 {error ? <div className="error-box">{error}</div> : null}

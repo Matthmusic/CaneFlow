@@ -10,7 +10,7 @@
 
 .toast {
   position: fixed;
-  top: 52px;
+  top: 46px;
   right: 18px;
   padding: 10px 12px;
   border-radius: 10px;
@@ -96,13 +96,14 @@
 }
 
 .logo {
-  width: 44px;
-  height: 44px;
+  width: 68px;
+  height: 68px;
 }
 
 .logo-text .eyebrow {
   margin: 0;
   color: #f59e0b;
+  font-size: 16px;
 }
 
 .logo-text .subtext {
@@ -113,7 +114,7 @@
 
 .hero h1 {
   margin: 6px 0 10px;
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 700;
   letter-spacing: -0.02em;
   color: #f8fafc;
@@ -230,6 +231,31 @@
   color: #cbd5f4;
   max-width: 800px;
   line-height: 1.6;
+}
+
+.info-inline-btn {
+  background: transparent;
+  border: none;
+  color: #f59e0b;
+  cursor: pointer;
+  padding: 3px 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.15s ease, transform 0.15s ease;
+  vertical-align: baseline;
+  margin-left: 4px;
+}
+
+.info-inline-btn:hover {
+  background: rgba(245, 158, 11, 0.15);
+  transform: scale(1.1);
+}
+
+.info-inline-btn svg {
+  width: 17px;
+  height: 17px;
 }
 
 .stats {
@@ -520,6 +546,17 @@
   background: rgba(245, 158, 11, 0.18);
   color: #fef3c7;
   box-shadow: 0 10px 20px rgba(245, 158, 11, 0.2);
+}
+
+.btn.new-export {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #ffffff;
+  box-shadow: 0 14px 30px rgba(16, 185, 129, 0.35);
+}
+
+.btn.new-export:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 35px rgba(16, 185, 129, 0.4);
 }
 
 .btn.small {
