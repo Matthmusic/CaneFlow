@@ -26,6 +26,7 @@ declare global {
         includeHeaders?: boolean
         sheetName?: string
       }) => Promise<{ outputPath: string; rowCount: number }>
+      getFilePathFromDrop: (file: File) => string | null
       onAppLog: (callback: (data: { level: string; message: string; data: any; timestamp: string }) => void) => () => void
       revealPath: (targetPath: string) => Promise<void>
       windowClose: () => Promise<void>

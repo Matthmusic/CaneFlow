@@ -1,10 +1,18 @@
-const { contextBridge, ipcRenderer } = require('electron')
+const { contextBridge, ipcRenderer, webUtils } = require('electron')
 
 contextBridge.exposeInMainWorld('api', {
   pickInputFile: () => ipcRenderer.invoke('pick-input-file'),
   pickOutputFile: (inputPath) => ipcRenderer.invoke('pick-output-file', inputPath),
   previewRows: (payload) => ipcRenderer.invoke('preview-rows', payload),
   convertFile: (payload) => ipcRenderer.invoke('convert-file', payload),
+  getFilePathFromDrop: (file) => {
+    try {
+      return webUtils.getPathForFile(file)
+    } catch (err) {
+      console.error('Failed to get file path:', err)
+      return null
+    }
+  },
   onAppLog: (callback) => {
     const listener = (_event, data) => callback(data)
     ipcRenderer.on('app-log', listener)

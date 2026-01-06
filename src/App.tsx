@@ -344,13 +344,15 @@ function App() {
 
     if (excelFile) {
       setError('')
-      const filePath = (excelFile as any).path
+      const filePath = window.api.getFilePathFromDrop(excelFile)
       if (filePath) {
         setInputPath(filePath)
         setOutputPath('')
         setLastExport(null)
         setStatus('Fichier charge. Pret a convertir.')
         await loadPreview(filePath)
+      } else {
+        setError('Impossible de lire le chemin du fichier')
       }
     } else {
       setError('Veuillez glisser un fichier Excel (.xls ou .xlsx)')
