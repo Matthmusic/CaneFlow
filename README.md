@@ -6,7 +6,7 @@ Version actuelle : v0.2.0
 
 ## 📥 Installation
 
-1. Va sur la page des [Releases](https://github.com/VOTRE_USERNAME/CaneFlow/releases)
+1. Va sur la page des [Releases](https://github.com/Matthmusic/CaneFlow/releases)
 2. Télécharge le fichier `.exe` du dernier tag (ex: `CaneFlow-Setup-0.2.0.exe`)
 3. Lance l'installateur
 4. C'est tout ! L'application vérifie automatiquement les mises à jour.
@@ -56,45 +56,3 @@ Dans Multidoc, configure les numéros de colonnes comme suit :
 - Colonne vide : 6
 - TVA : 7
 - Descriptif : 8
-
-## 🛠️ Développement
-
-### Prérequis
-- Node.js 18+
-- Microsoft Excel (pour la conversion .xls → .xlsx)
-
-### Démarrer en dev
-
-```bash
-npm install
-npm run electron:dev
-```
-
-### Build Windows
-
-```bash
-npm run build:electron
-```
-
-Le build génère un installateur `.exe` dans le dossier `release/`.
-
-### Conversion en ligne de commande
-
-```bash
-node scripts/convert.js --input "CARNET DE CABLES TGBT.xls" --prix 0 --tva 0
-```
-
-## 📝 Notes techniques
-
-- L'icône Windows doit se trouver dans `electron/caneflow.ico`
-- Les fichiers .xls sont convertis via PowerShell + COM Automation Excel
-- Les mises à jour sont publiées via GitHub Releases et détectées automatiquement par l'app
-- La première ligne du fichier Excel (en-têtes de colonnes) est automatiquement ignorée
-- L'interface utilise React avec TypeScript et Vite
-
-## 🔄 Publier une nouvelle version
-
-1. Met à jour la version dans `package.json`
-2. Commit et push les changements
-3. Crée un tag git : `git tag v0.x.x && git push origin v0.x.x`
-4. GitHub Actions build automatiquement l'installateur et crée la Release
