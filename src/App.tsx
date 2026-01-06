@@ -219,6 +219,8 @@ function App() {
       setLastExport(null)
       setStatus('Fichier charge. Pret a convertir.')
       await loadPreview(selected)
+      setCurrentStep(2)
+      setExpandedStep(2)
       // Rester à l'étape 1 et afficher les boutons de choix
     } catch (err) {
       console.error('pickInput', err)
@@ -341,6 +343,8 @@ function App() {
         setLastExport(null)
         setStatus('Fichier charge. Pret a convertir.')
         await loadPreview(filePath)
+        setCurrentStep(2)
+        setExpandedStep(2)
         // Rester à l'étape 1 et afficher les boutons de choix
       } else {
         setError('Impossible de lire le chemin du fichier')
