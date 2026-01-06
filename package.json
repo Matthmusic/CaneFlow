@@ -3,7 +3,7 @@
   "description": "CaneFlow - conversion de carnets de cables Caneco vers Multidoc (Electron + React).",
   "author": "Matthieu Maurel",
   "private": true,
-  "version": "0.0.6",
+  "version": "0.0.7",
   "type": "commonjs",
   "main": "electron/main.cjs",
   "build": {
@@ -13,6 +13,12 @@
       "output": "dist",
       "buildResources": "electron"
     },
+    "extraResources": [
+      {
+        "from": "electron/caneflow.ico",
+        "to": "assets/caneflow.ico"
+      }
+    ],
     "publish": [
       {
         "provider": "github",
@@ -83,6 +89,7 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
+    "to-ico": "^1.1.5",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
     "vite": "^7.2.4"

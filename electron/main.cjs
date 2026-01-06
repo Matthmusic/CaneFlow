@@ -1,4 +1,5 @@
 const { app, BrowserWindow, ipcMain, dialog, shell, screen, Menu, globalShortcut } = require('electron')
+const fs = require('fs')
 const path = require('path')
 const { autoUpdater } = require('electron-updater')
 const { buildPreviewRows, mapSheetRows } = require('./transform.cjs')
@@ -8,6 +9,10 @@ const LOG_PREFIX = '[CaneFlow]'
 
 const isDev = !!process.env.VITE_DEV_SERVER_URL
 let mainWindow = null
+
+if (process.platform === 'win32') {
+  app.setAppUserModelId('com.matthmusic.caneflow')
+}
 
 function canSendToMainWindow() {
   return !!(mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents)
@@ -42,9 +47,20 @@ function normalizeOutputPath(filePath) {
 }
 
 function resolveIconPath() {
-  return app.isPackaged
-    ? path.join(process.resourcesPath, 'electron', 'caneflow.ico')
-    : path.join(__dirname, '..', 'img', 'CaneFlow.png')
+  if (app.isPackaged) {
+    const packagedCandidates = [
+      path.join(process.resourcesPath, 'assets', 'caneflow.ico'),
+      path.join(process.resourcesPath, 'electron', 'caneflow.ico'),
+    ]
+    return packagedCandidates.find((candidate) => fs.existsSync(candidate)) || packagedCandidates[0]
+  }
+
+  const devCandidates = [
+    path.join(__dirname, '..', 'electron', 'caneflow.ico'),
+    path.join(__dirname, '..', 'img', 'CaneFlow.ico'),
+    path.join(__dirname, '..', 'img', 'CaneFlow.png'),
+  ]
+  return devCandidates.find((candidate) => fs.existsSync(candidate)) || devCandidates[0]
 }
 
 function createWindow() {
