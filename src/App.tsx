@@ -428,7 +428,7 @@ function App() {
                 </div>
                 <div className="info-row caneco-columns">
                   <span>Amont</span>
-                  <span>Repère</span>
+                  <span>Descriptif</span>
                   <span>Longueur</span>
                   <span>Câble</span>
                   <span>Neutre</span>
