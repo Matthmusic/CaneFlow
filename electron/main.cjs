@@ -113,12 +113,17 @@ ipcMain.handle('pick-input-file', async () => {
 })
 
 ipcMain.handle('pick-output-file', async (_event, inputPath) => {
-  const defaultPath = inputPath ? buildDefaultOutputPath(inputPath) : undefined
-  const res = await dialog.showSaveDialog(mainWindow, {
+  let dialogOptions = {
     title: 'Enregistrer le fichier Multidoc',
-    defaultPath,
     filters: [{ name: 'Excel', extensions: ['xlsx'] }],
-  })
+  }
+
+  if (inputPath) {
+    const defaultPath = buildDefaultOutputPath(inputPath)
+    dialogOptions.defaultPath = defaultPath
+  }
+
+  const res = await dialog.showSaveDialog(mainWindow, dialogOptions)
   if (res.canceled || !res.filePath) return null
   return res.filePath
 })

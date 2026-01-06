@@ -199,7 +199,13 @@ async function readSheetRows(inputPath, sheetName) {
   const totalRows = worksheet.actualRowCount || worksheet.rowCount || 0
   console.log(`${LOG_PREFIX} extracting rows`, { columnCount, totalRows })
   const rows = []
+  let rowIndex = 0
   worksheet.eachRow({ includeEmpty: true }, (row) => {
+    rowIndex++
+    // Ignorer la première ligne (titres de colonnes)
+    if (rowIndex === 1) {
+      return
+    }
     rows.push(buildRowValues(row, columnCount))
   })
 

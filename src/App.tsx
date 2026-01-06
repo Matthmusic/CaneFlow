@@ -33,7 +33,7 @@ function App() {
   const [cableTypes, setCableTypes] = useState<string[]>([])
   const [typePrices, setTypePrices] = useState<Record<string, string>>({})
   const [unitPrices, setUnitPrices] = useState<string[]>([])
-  const [priceMode, setPriceMode] = useState<'perCable' | 'perLine'>('perCable')
+  const [priceMode, setPriceMode] = useState<'perCable' | 'perLine'>('perLine')
   const [defaultUnitPrice, setDefaultUnitPrice] = useState('0')
   const [tva, setTva] = useState('0')
   const [status, setStatus] = useState('En attente de selection.')
@@ -602,7 +602,7 @@ function App() {
                 onClick={() => inputPath && loadPreview(inputPath)}
                 disabled={!inputPath || loadingPreview || busy}
               >
-                <RefreshCw size={16} />
+                <RefreshCw size={16} className={loadingPreview ? 'spinner' : ''} />
                 {loadingPreview ? 'Chargement...' : 'Recharger les lignes'}
               </button>
             </div>
@@ -801,11 +801,11 @@ function App() {
 
                 <div className="buttons" style={noDragStyle}>
                   <button className="btn primary" onClick={convert} disabled={busy || !inputPath || previewRows.length === 0}>
-                    <RefreshCw size={16} />
+                    <RefreshCw size={16} className={busy ? 'spinner' : ''} />
                     {busy ? 'Conversion...' : 'Convertir'}
                   </button>
-                  <button className="btn secondary" onClick={revealExport} disabled={!outputLabel}>
-                    <CheckCircle2 size={16} />
+                  <button className="btn secondary" onClick={revealExport} disabled={!lastExport}>
+                    <CheckCircle2 size={18} />
                     Ouvrir le dossier
                   </button>
                 </div>
