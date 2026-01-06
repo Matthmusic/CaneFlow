@@ -1,6 +1,8 @@
-# CaneFlow
-
-CaneFlow est une application Electron/React pour convertir un carnet de câbles Caneco en fichier Excel compatible Multidoc, en un clic.
+<div align="center">
+  <img src="public/logo.svg" alt="CaneFlow Logo" width="120" height="120">
+  <h1>CaneFlow</h1>
+  <p>Convertis ton carnet de câbles Caneco en fichier Excel compatible Multidoc, en un clic.</p>
+</div>
 
 Version actuelle : v0.2.0
 
