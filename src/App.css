@@ -316,6 +316,47 @@
   padding: 18px 18px 16px;
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
   animation: panel-rise 0.45s ease both;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.panel.collapsed {
+  padding: 14px 18px;
+  background: rgba(10, 15, 32, 0.5);
+  border-color: #151b2e;
+}
+
+.panel.collapsed .panel-head {
+  margin-bottom: 0;
+}
+
+.panel.collapsed:hover {
+  background: rgba(10, 15, 32, 0.7);
+  border-color: #1d2642;
+}
+
+.panel.completed {
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.panel.locked {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.panel-content {
+  animation: panel-content-show 0.3s ease;
+}
+
+@keyframes panel-content-show {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes panel-rise {
@@ -347,6 +388,29 @@
   margin: 0;
   color: #9aa5c1;
   line-height: 1.5;
+}
+
+.hint-muted {
+  margin: 0;
+  color: #6b7280;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.summary {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.step-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #1d2642;
 }
 
 .pill {

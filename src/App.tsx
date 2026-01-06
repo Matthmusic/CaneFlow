@@ -46,6 +46,8 @@ function App() {
   const [toastTimeout, setToastTimeout] = useState<ReturnType<typeof setTimeout> | null>(null)
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>({ state: 'idle' })
   const [isDragging, setIsDragging] = useState(false)
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1)
+  const [expandedStep, setExpandedStep] = useState<1 | 2 | 3>(1)
   const noDragStyle: CSSProperties = { WebkitAppRegion: 'no-drag' }
 
   const outputLabel = useMemo(() => {
@@ -217,6 +219,9 @@ function App() {
       setLastExport(null)
       setStatus('Fichier charge. Pret a convertir.')
       await loadPreview(selected)
+      // Passer à l'étape 2 automatiquement
+      setCurrentStep(2)
+      setExpandedStep(2)
     } catch (err) {
       console.error('pickInput', err)
       setError('Impossible de selectionner le fichier.')
@@ -351,12 +356,24 @@ function App() {
         setLastExport(null)
         setStatus('Fichier charge. Pret a convertir.')
         await loadPreview(filePath)
+        // Passer à l'étape 2 automatiquement
+        setCurrentStep(2)
+        setExpandedStep(2)
       } else {
         setError('Impossible de lire le chemin du fichier')
       }
     } else {
       setError('Veuillez glisser un fichier Excel (.xls ou .xlsx)')
     }
+  }
+
+  const goToStep3 = () => {
+    setCurrentStep(3)
+    setExpandedStep(3)
+  }
+
+  const editStep = (step: 1 | 2 | 3) => {
+    setExpandedStep(step)
   }
 
   return (
@@ -541,15 +558,27 @@ function App() {
         </header>
 
         <main className="layout">
-          <section className="panel">
-            <div className="panel-head">
+          {/* ÉTAPE 1 */}
+          <section className={`panel ${expandedStep === 1 ? 'expanded' : 'collapsed'} ${currentStep >= 2 ? 'completed' : ''}`}>
+            <div className="panel-head" onClick={() => currentStep >= 2 && editStep(1)} style={currentStep >= 2 ? { cursor: 'pointer' } : {}}>
               <div>
                 <p className="eyebrow subtle">Etape 1</p>
                 <h2>Choisir le fichier source</h2>
-                <p className="hint">Selectionne l'export Caneco (.xls/.xlsx). Les .xls sont convertis via Excel.</p>
+                {expandedStep === 1 && <p className="hint">Selectionne l'export Caneco (.xls/.xlsx). Les .xls sont convertis via Excel.</p>}
+                {expandedStep !== 1 && currentStep >= 2 && inputPath && (
+                  <p className="summary">{shortenPath(inputPath)}</p>
+                )}
               </div>
-              {inputPath ? <span className="pill">OK</span> : <span className="pill muted">En attente</span>}
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                {currentStep >= 2 && <CheckCircle2 size={18} style={{ color: '#10b981' }} />}
+                {currentStep >= 2 && expandedStep !== 1 && <button className="btn ghost small">Modifier</button>}
+                {expandedStep === 1 && inputPath && <span className="pill">OK</span>}
+                {expandedStep === 1 && !inputPath && <span className="pill muted">En attente</span>}
+              </div>
             </div>
+
+            {expandedStep === 1 && (
+              <div className="panel-content">
 
             <div
               className={`path-box ${isDragging ? 'dragging' : ''}`}
@@ -585,32 +614,51 @@ function App() {
                 Choisir la sortie
               </button>
             </div>
+              </div>
+            )}
           </section>
 
-          <section className="panel">
-            <div className="panel-head">
+          {/* ÉTAPE 2 */}
+          <section className={`panel ${expandedStep === 2 ? 'expanded' : 'collapsed'} ${currentStep >= 3 ? 'completed' : ''} ${currentStep < 2 ? 'locked' : ''}`}>
+            <div className="panel-head" onClick={() => currentStep >= 2 && currentStep >= 3 && editStep(2)} style={currentStep >= 3 ? { cursor: 'pointer' } : {}}>
               <div>
                 <p className="eyebrow subtle">Etape 2</p>
                 <h2>Definir les prix</h2>
-                <p className="hint">
-                  {priceMode === 'perLine'
-                    ? 'Saisis un prix pour chaque ligne.'
-                    : 'Saisis un prix par cable (colonne D) et type (colonne G).'}
-                </p>
+                {expandedStep === 2 && (
+                  <p className="hint">
+                    {priceMode === 'perLine'
+                      ? 'Saisis un prix pour chaque ligne.'
+                      : 'Saisis un prix par cable (colonne D) et type (colonne G).'}
+                  </p>
+                )}
+                {expandedStep !== 2 && currentStep >= 3 && (
+                  <p className="summary">
+                    Prix configuré - {priceMode === 'perLine' ? `${previewRows.length} lignes` : `${cableTypes.length} types de câble`}
+                  </p>
+                )}
+                {currentStep < 2 && <p className="hint-muted">Complète l'étape 1 d'abord</p>}
               </div>
-              <span className="pill muted">
-                {loadingPreview
-                  ? 'Chargement'
-                  : priceMode === 'perLine'
-                    ? previewRows.length
-                      ? `${previewRows.length} lignes`
-                      : 'Aucune ligne'
-                    : cableTypes.length
-                      ? `${cableTypes.length} cables + types`
-                      : 'Aucun cable + type'}
-              </span>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                {currentStep >= 3 && <CheckCircle2 size={18} style={{ color: '#10b981' }} />}
+                {currentStep >= 3 && expandedStep !== 2 && <button className="btn ghost small">Modifier</button>}
+                {expandedStep === 2 && currentStep === 2 && (
+                  <span className="pill muted">
+                    {loadingPreview
+                      ? 'Chargement'
+                      : priceMode === 'perLine'
+                        ? previewRows.length
+                          ? `${previewRows.length} lignes`
+                          : 'Aucune ligne'
+                        : cableTypes.length
+                          ? `${cableTypes.length} cables + types`
+                          : 'Aucun cable + type'}
+                  </span>
+                )}
+              </div>
             </div>
 
+            {expandedStep === 2 && currentStep >= 2 && (
+              <div className="panel-content">
             <div className="price-mode" style={noDragStyle}>
               <button
                 className={`btn ghost small ${priceMode === 'perLine' ? 'active' : ''}`}
@@ -714,35 +762,57 @@ function App() {
             ) : (
               <div className="price-table-empty">Charge un fichier pour voir les cables + types.</div>
             )}
+
+            <div className="step-actions" style={noDragStyle}>
+              <button className="btn secondary" onClick={goToStep3}>
+                Ignorer et passer à l'étape 3 →
+              </button>
+              <button className="btn primary" onClick={goToStep3}>
+                Passer à l'étape 3 →
+              </button>
+            </div>
+              </div>
+            )}
           </section>
 
-          <section className="panel">
+          {/* ÉTAPE 3 */}
+          <section className={`panel ${expandedStep === 3 ? 'expanded' : 'collapsed'} ${currentStep < 3 ? 'locked' : ''}`}>
             <div className="panel-head">
               <div>
                 <p className="eyebrow subtle">Etape 3</p>
                 <h2>Exporter vers Multidoc</h2>
-                <p className="hint">Le fichier est genere avec les colonnes attendues.</p>
+                {expandedStep === 3 && <p className="hint">Le fichier est genere avec les colonnes attendues.</p>}
+                {currentStep < 3 && <p className="hint-muted">Complète l'étape 2 d'abord</p>}
               </div>
-              {lastExport ? <span className="pill">Pret</span> : <span className="pill muted">Conversion</span>}
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                {lastExport && <CheckCircle2 size={18} style={{ color: '#10b981' }} />}
+                {expandedStep === 3 && currentStep === 3 && (
+                  lastExport ? <span className="pill">Pret</span> : <span className="pill muted">Conversion</span>
+                )}
+              </div>
             </div>
 
-            <div className="path-box">
-              <p className="label">Fichier Multidoc</p>
-              <p className="path">{outputLabel ? shortenPath(outputLabel) : 'Aucune sortie pour le moment.'}</p>
-            </div>
+            {expandedStep === 3 && currentStep === 3 && (
+              <div className="panel-content">
+                <div className="path-box">
+                  <p className="label">Fichier Multidoc</p>
+                  <p className="path">{outputLabel ? shortenPath(outputLabel) : 'Aucune sortie pour le moment.'}</p>
+                </div>
 
-            <div className="buttons" style={noDragStyle}>
-              <button className="btn primary" onClick={convert} disabled={busy || !inputPath || previewRows.length === 0}>
-                <RefreshCw size={16} />
-                {busy ? 'Conversion...' : 'Convertir'}
-              </button>
-              <button className="btn secondary" onClick={revealExport} disabled={!outputLabel}>
-                <CheckCircle2 size={16} />
-                Ouvrir le dossier
-              </button>
-            </div>
+                <div className="buttons" style={noDragStyle}>
+                  <button className="btn primary" onClick={convert} disabled={busy || !inputPath || previewRows.length === 0}>
+                    <RefreshCw size={16} />
+                    {busy ? 'Conversion...' : 'Convertir'}
+                  </button>
+                  <button className="btn secondary" onClick={revealExport} disabled={!outputLabel}>
+                    <CheckCircle2 size={16} />
+                    Ouvrir le dossier
+                  </button>
+                </div>
 
-            {error ? <div className="error-box">{error}</div> : null}
+                {error ? <div className="error-box">{error}</div> : null}
+              </div>
+            )}
           </section>
         </main>
 
