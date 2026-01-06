@@ -1,4 +1,5 @@
 const ExcelJS = require('exceljs')
+const xlsx = require('xlsx')
 const fs = require('fs')
 const os = require('os')
 const path = require('path')
@@ -23,14 +24,17 @@ function convertXlsToXlsx(inputPath, outputPath) {
       '$ErrorActionPreference = "Stop";',
       '$inputPath = $env:CANEFLOW_INPUT_PATH;',
       '$outputPath = $env:CANEFLOW_OUTPUT_PATH;',
+      '$excel = $null;',
       'if (-not (Test-Path -LiteralPath $inputPath)) { throw "Fichier source introuvable: $inputPath"; }',
       'try {',
       '  $excel = New-Object -ComObject Excel.Application -ErrorAction Stop;',
       '} catch {',
       '  throw "Microsoft Excel n\'est pas installé ou accessible. Erreur: $($_.Exception.Message)";',
       '}',
-      '$excel.Visible = $false;',
-      '$excel.DisplayAlerts = $false;',
+      'if ($excel) {',
+      '  try { $excel.Visible = $false } catch { }',
+      '  try { $excel.DisplayAlerts = $false } catch { }',
+      '}',
       '$workbook = $null;',
       'try {',
       '  $workbook = $excel.Workbooks.Open($inputPath, $null, $true);',
@@ -50,8 +54,10 @@ function convertXlsToXlsx(inputPath, outputPath) {
       '  }',
       '} finally {',
       '  if ($workbook) { [System.Runtime.Interopservices.Marshal]::ReleaseComObject($workbook) | Out-Null; }',
-      '  $excel.Quit();',
-      '  [System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel) | Out-Null;',
+      '  if ($excel) {',
+      '    try { $excel.Quit(); } catch { }',
+      '    [System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel) | Out-Null;',
+      '  }',
       '  [GC]::Collect();',
       '  [GC]::WaitForPendingFinalizers();',
       '}',
@@ -61,7 +67,7 @@ function convertXlsToXlsx(inputPath, outputPath) {
 
     const child = spawn(
       'powershell',
-      ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script],
+      ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-STA', '-Command', script],
       {
         windowsHide: true,
         env: {
@@ -116,6 +122,27 @@ function convertXlsToXlsx(inputPath, outputPath) {
   })
 }
 
+function readSheetRowsWithXlsx(inputPath, sheetName) {
+  console.log(`${LOG_PREFIX} readSheetRowsWithXlsx start`, { inputPath, sheetName: sheetName || '' })
+  const workbook = xlsx.readFile(inputPath, { cellDates: true })
+  const targetName = sheetName || workbook.SheetNames[0]
+  if (!targetName) {
+    throw new Error('No sheets found in file.')
+  }
+  const worksheet = workbook.Sheets[targetName]
+  if (!worksheet) {
+    throw new Error(`Sheet not found: ${sheetName}`)
+  }
+  const rows = xlsx.utils.sheet_to_json(worksheet, {
+    header: 1,
+    defval: '',
+    blankrows: true,
+    raw: true,
+  })
+  console.log(`${LOG_PREFIX} readSheetRowsWithXlsx done`, { rowCount: rows.length, sheetName: targetName })
+  return rows
+}
+
 function extractCellValue(cellValue) {
   if (cellValue === null || cellValue === undefined) {
     return ''
@@ -158,18 +185,36 @@ async function readSheetRows(inputPath, sheetName) {
   console.log(`${LOG_PREFIX} readSheetRows start`, { inputPath, sheetName: sheetName || '' })
   let sourcePath = inputPath
   let tempPath = ''
+  let rows = null
   if (isXlsFile(inputPath)) {
     if (!fs.existsSync(inputPath)) {
       throw new Error(`Input file not found: ${inputPath}`)
     }
-    tempPath = createTempXlsxPath()
-    console.log(`${LOG_PREFIX} converting xls to xlsx`, { inputPath, tempPath })
-    await convertXlsToXlsx(inputPath, tempPath)
-    if (!fs.existsSync(tempPath)) {
-      throw new Error('Conversion .xls vers .xlsx impossible. Verifie Excel ou les droits d ecriture.')
+    try {
+      rows = readSheetRowsWithXlsx(inputPath, sheetName)
+    } catch (error) {
+      console.warn(`${LOG_PREFIX} readSheetRowsWithXlsx failed, fallback to Excel`, { error: error.message })
+      tempPath = createTempXlsxPath()
+      console.log(`${LOG_PREFIX} converting xls to xlsx`, { inputPath, tempPath })
+      await convertXlsToXlsx(inputPath, tempPath)
+      if (!fs.existsSync(tempPath)) {
+        throw new Error('Conversion .xls vers .xlsx impossible. Verifie Excel ou les droits d ecriture.')
+      }
+      console.log(`${LOG_PREFIX} xls conversion complete`, { tempPath })
+      sourcePath = tempPath
     }
-    console.log(`${LOG_PREFIX} xls conversion complete`, { tempPath })
-    sourcePath = tempPath
+  }
+
+  if (rows !== null) {
+    rows = rows.slice(1)
+    while (rows.length && isRowEmpty(rows[0])) {
+      rows.shift()
+    }
+    while (rows.length && isRowEmpty(rows[rows.length - 1])) {
+      rows.pop()
+    }
+    console.log(`${LOG_PREFIX} readSheetRows done`, { rowCount: rows.length })
+    return rows
   }
 
   console.log(`${LOG_PREFIX} loading workbook`, { sourcePath })
@@ -198,7 +243,7 @@ async function readSheetRows(inputPath, sheetName) {
   const columnCount = worksheet.actualColumnCount || worksheet.columnCount || 0
   const totalRows = worksheet.actualRowCount || worksheet.rowCount || 0
   console.log(`${LOG_PREFIX} extracting rows`, { columnCount, totalRows })
-  const rows = []
+  rows = []
   let rowIndex = 0
   worksheet.eachRow({ includeEmpty: true }, (row) => {
     rowIndex++
