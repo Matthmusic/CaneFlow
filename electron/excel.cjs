@@ -23,14 +23,31 @@ function convertXlsToXlsx(inputPath, outputPath) {
       '$ErrorActionPreference = "Stop";',
       '$inputPath = $env:CANEFLOW_INPUT_PATH;',
       '$outputPath = $env:CANEFLOW_OUTPUT_PATH;',
-      'if (-not (Test-Path -LiteralPath $inputPath)) { throw "Input file not found."; }',
-      '$excel = New-Object -ComObject Excel.Application;',
+      'if (-not (Test-Path -LiteralPath $inputPath)) { throw "Fichier source introuvable: $inputPath"; }',
+      'try {',
+      '  $excel = New-Object -ComObject Excel.Application -ErrorAction Stop;',
+      '} catch {',
+      '  throw "Microsoft Excel n\'est pas installé ou accessible. Erreur: $($_.Exception.Message)";',
+      '}',
       '$excel.Visible = $false;',
       '$excel.DisplayAlerts = $false;',
+      '$workbook = $null;',
       'try {',
       '  $workbook = $excel.Workbooks.Open($inputPath, $null, $true);',
+      '  if (-not $workbook) { throw "Impossible d\'ouvrir le fichier. Il est peut-être corrompu ou protégé par mot de passe."; }',
       '  $workbook.SaveAs($outputPath, 51);',
       '  $workbook.Close($false);',
+      '} catch {',
+      '  $errorMsg = $_.Exception.Message;',
+      '  if ($errorMsg -match "password|mot de passe") {',
+      '    throw "Le fichier est protégé par mot de passe.";',
+      '  } elseif ($errorMsg -match "permission|access denied|accès refusé") {',
+      '    throw "Accès refusé. Vérifiez les permissions du fichier.";',
+      '  } elseif ($errorMsg -match "format|corrupt") {',
+      '    throw "Le fichier est corrompu ou dans un format non supporté.";',
+      '  } else {',
+      '    throw "Erreur lors de la conversion: $errorMsg";',
+      '  }',
       '} finally {',
       '  if ($workbook) { [System.Runtime.Interopservices.Marshal]::ReleaseComObject($workbook) | Out-Null; }',
       '  $excel.Quit();',
@@ -38,7 +55,7 @@ function convertXlsToXlsx(inputPath, outputPath) {
       '  [GC]::Collect();',
       '  [GC]::WaitForPendingFinalizers();',
       '}',
-      'if (-not (Test-Path -LiteralPath $outputPath)) { throw "Conversion failed: output not created."; }',
+      'if (-not (Test-Path -LiteralPath $outputPath)) { throw "La conversion a échoué: fichier de sortie non créé."; }',
       '}',
     ].join(' ')
 
@@ -56,12 +73,19 @@ function convertXlsToXlsx(inputPath, outputPath) {
     )
 
     let stderr = ''
+    let stdout = ''
+
+    child.stdout.on('data', (data) => {
+      stdout += data.toString()
+    })
+
     child.stderr.on('data', (data) => {
       stderr += data.toString()
     })
 
     child.on('error', (error) => {
-      reject(error)
+      console.error(`${LOG_PREFIX} spawn error`, { error: error.message })
+      reject(new Error(`Erreur PowerShell: ${error.message}`))
     })
 
     child.on('close', (code) => {
@@ -70,9 +94,23 @@ function convertXlsToXlsx(inputPath, outputPath) {
         resolve()
         return
       }
-      const message =
-        stderr.trim() ||
-        `Failed to convert xls to xlsx (code ${code}). Ensure Microsoft Excel is installed.`
+
+      const errorOutput = stderr.trim() || stdout.trim()
+      console.error(`${LOG_PREFIX} convertXlsToXlsx failed`, {
+        code,
+        stderr: stderr.trim(),
+        stdout: stdout.trim(),
+        inputPath,
+        outputPath
+      })
+
+      let message = 'Échec de conversion du fichier .xls'
+      if (errorOutput) {
+        message = errorOutput
+      } else if (code === 1) {
+        message = 'Microsoft Excel est requis pour ouvrir les fichiers .xls. Veuillez vérifier qu\'Excel est bien installé.'
+      }
+
       reject(new Error(message))
     })
   })
