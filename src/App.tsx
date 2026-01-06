@@ -379,6 +379,9 @@ function App() {
           <img src={logo} alt="CaneFlow" className="title-logo" />
           <span className="window-title-text">CaneFlow</span>
         </div>
+        <div className="window-title-center">
+          <span className="version-badge">v{currentVersion}</span>
+        </div>
         <div className="window-controls">
           <button className="btn-icon info" aria-label="Infos" onClick={() => setShowInfo(true)}>
             <Info size={14} />
