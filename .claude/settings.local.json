@@ -14,7 +14,11 @@
       "Bash(git branch:*)",
       "Bash(git add:*)",
       "Bash(del nul)",
-      "Bash(powershell -Command:*)"
+      "Bash(powershell -Command:*)",
+      "Bash(git commit:*)",
+      "Bash(git tag:*)",
+      "Bash(git push:*)",
+      "Bash(rm:*)"
     ]
   }
 }
