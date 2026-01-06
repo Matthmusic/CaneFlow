@@ -219,9 +219,7 @@ function App() {
       setLastExport(null)
       setStatus('Fichier charge. Pret a convertir.')
       await loadPreview(selected)
-      // Passer à l'étape 2 automatiquement
-      setCurrentStep(2)
-      setExpandedStep(2)
+      // Rester à l'étape 1 et afficher les boutons de choix
     } catch (err) {
       console.error('pickInput', err)
       setError('Impossible de selectionner le fichier.')
@@ -356,9 +354,7 @@ function App() {
         setLastExport(null)
         setStatus('Fichier charge. Pret a convertir.')
         await loadPreview(filePath)
-        // Passer à l'étape 2 automatiquement
-        setCurrentStep(2)
-        setExpandedStep(2)
+        // Rester à l'étape 1 et afficher les boutons de choix
       } else {
         setError('Impossible de lire le chemin du fichier')
       }
@@ -609,11 +605,18 @@ function App() {
                 <RefreshCw size={16} />
                 {loadingPreview ? 'Chargement...' : 'Recharger les lignes'}
               </button>
-              <button className="btn ghost" onClick={() => inputPath && pickOutput()} disabled={!inputPath || busy}>
-                <FolderOpen size={16} />
-                Choisir la sortie
-              </button>
             </div>
+
+            {inputPath && !loadingPreview && (
+              <div className="step-actions" style={noDragStyle}>
+                <button className="btn secondary" onClick={() => { setCurrentStep(2); setExpandedStep(2); }}>
+                  Définir les prix →
+                </button>
+                <button className="btn primary" onClick={goToStep3}>
+                  Exporter directement →
+                </button>
+              </div>
+            )}
               </div>
             )}
           </section>
@@ -764,9 +767,6 @@ function App() {
             )}
 
             <div className="step-actions" style={noDragStyle}>
-              <button className="btn secondary" onClick={goToStep3}>
-                Ignorer et passer à l'étape 3 →
-              </button>
               <button className="btn primary" onClick={goToStep3}>
                 Passer à l'étape 3 →
               </button>
