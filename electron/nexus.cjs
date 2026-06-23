@@ -1,9 +1,9 @@
 const fs = require('fs')
 const path = require('path')
 const os = require('os')
-const { parseCableKey } = require('./transform.cjs')
 
 const MARGIN = 1.33
+const CABLE_KEY_SEP = ' | '
 const EMBEDDED_CABLES_PATH = path.join(__dirname, 'cables.json')
 
 const NEXUS_CONFIG_PATH = process.env.APPDATA
@@ -21,12 +21,11 @@ const CABLE_CATEGORIES = new Set([
   'cables telephoniques',
 ])
 
-// Module-scope caches — populated on first call, never re-read at runtime
-let _nexusDataDir = null
-let _nexusDataDirLoaded = false
-let _nexusItems = null
+// cables.json est un asset statique embarqué — chargé une seule fois au démarrage
 let _cablesData = null
 
+// prices.json NEXUS est sur disque/réseau — pas de cache persistant
+// pour permettre les retry si le réseau n'était pas accessible au premier appel
 function norm(s) {
   return String(s || '')
     .trim()
@@ -47,33 +46,35 @@ function normSection(s) {
     .replace(/\s+/g, '')
 }
 
+// Inline — évite la dépendance externe vers transform.cjs dans le package ASAR
+function parseCableKey(key) {
+  const idx = key.indexOf(CABLE_KEY_SEP)
+  if (idx === -1) return { cable: key, typeCable: '' }
+  return { cable: key.slice(0, idx), typeCable: key.slice(idx + CABLE_KEY_SEP.length) }
+}
+
 function getNexusDataDir() {
-  if (_nexusDataDirLoaded) return _nexusDataDir
-  _nexusDataDirLoaded = true
   try {
     if (!fs.existsSync(NEXUS_CONFIG_PATH)) return null
     const config = JSON.parse(fs.readFileSync(NEXUS_CONFIG_PATH, 'utf-8'))
-    _nexusDataDir = config.dataDir || null
+    return config.dataDir || null
   } catch {
-    _nexusDataDir = null
+    return null
   }
-  return _nexusDataDir
 }
 
 function loadNexusCableItems() {
-  if (_nexusItems !== null) return _nexusItems
   const dataDir = getNexusDataDir()
-  if (!dataDir) { _nexusItems = []; return _nexusItems }
+  if (!dataDir) return []
   const pricesPath = path.join(dataDir, 'prices.json')
   try {
-    if (!fs.existsSync(pricesPath)) { _nexusItems = []; return _nexusItems }
+    if (!fs.existsSync(pricesPath)) return []
     const db = JSON.parse(fs.readFileSync(pricesPath, 'utf-8'))
     const items = Array.isArray(db.items) ? db.items : []
-    _nexusItems = items.filter((item) => CABLE_CATEGORIES.has(norm(item.category || '')))
+    return items.filter((item) => CABLE_CATEGORIES.has(norm(item.category || '')))
   } catch {
-    _nexusItems = []
+    return []
   }
-  return _nexusItems
 }
 
 function loadCablesData() {
@@ -92,10 +93,8 @@ function matchMaterialPrice(cable, typeCable, items, exactMap) {
   const normType = norm(typeCable)
   const fullKey = [normType, normCable].filter(Boolean).join(' ')
 
-  // Pass 1 — exact match via pre-built Map (O(1))
   if (exactMap.has(fullKey)) return exactMap.get(fullKey)
 
-  // Pass 2 — partial: name contains both type and section
   if (normType && normCable) {
     for (const item of items) {
       const n = norm(item.name)
@@ -103,7 +102,7 @@ function matchMaterialPrice(cable, typeCable, items, exactMap) {
     }
   }
 
-  // Pass 3 — section only, only when there is no type to match against
+  // Pass section seule uniquement si pas de typeCable
   if (!normType && normCable) {
     for (const item of items) {
       if (norm(item.name).includes(normCable)) return item.price
@@ -129,7 +128,6 @@ function lookupCablePrices(compositeKeys, margin = MARGIN) {
   const nexusItems = loadNexusCableItems()
   const cablesData = loadCablesData()
 
-  // Pre-build exact-match Map once for all keys
   const exactMap = new Map()
   for (const item of nexusItems) {
     const k = norm(item.name)
