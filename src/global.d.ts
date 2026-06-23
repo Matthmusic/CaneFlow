@@ -28,6 +28,7 @@ declare global {
       }) => Promise<{ outputPath: string; rowCount: number }>
       getFilePathFromDrop: (file: File) => string | null
       onAppLog: (callback: (data: { level: string; message: string; data: any; timestamp: string }) => void) => () => void
+      lookupCablePrices: (compositeKeys: string[], margin?: number) => Promise<Record<string, number>>
       revealPath: (targetPath: string) => Promise<void>
       windowClose: () => Promise<void>
       windowMinimize: () => Promise<void>

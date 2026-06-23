@@ -8,6 +8,7 @@ const DEFAULT_COLUMN_INDEX = {
   neutre: 4,
   pe: 5,
   typeCable: 6,
+  nature: 7,
 }
 
 const HEADER_ALIASES = new Map([
@@ -18,6 +19,10 @@ const HEADER_ALIASES = new Map([
   ['neutre', 'neutre'],
   ['pe ou pen', 'pe'],
   ['type de cable', 'typeCable'],
+  ['nature', 'nature'],
+  ['matiere', 'nature'],
+  ['mat.', 'nature'],
+  ['conducteur', 'nature'],
 ])
 
 function normalizeText(value) {
@@ -83,6 +88,7 @@ function rowFromArray(row, indices) {
     neutre: normalizeText(row[indices.neutre]),
     pe: normalizeText(row[indices.pe]),
     typeCable: normalizeText(row[indices.typeCable]),
+    nature: normalizeText(indices.nature !== undefined ? row[indices.nature] : undefined),
   }
 }
 
@@ -95,15 +101,24 @@ function buildCableKey(row) {
   return cable || typeCable || ''
 }
 
+function cableIncludesPE(cable) {
+  return /\d+[Gg]\d/.test(cable)
+}
+
+function withUnit(s) {
+  return s ? `${s} mm\u00b2` : s
+}
+
 function buildTitle(row) {
-  let title = `Fourniture, pose et raccordement \"${row.repere}\" - en c\u00e2ble : ${row.cable}`
+  const cableLabel = row.nature ? `${withUnit(row.cable)} ${row.nature}` : withUnit(row.cable)
+  let title = `Fourniture, pose et raccordement \"${row.repere}\" - en c\u00e2ble : ${cableLabel}`
 
   const extraParts = []
   if (row.neutre) {
-    extraParts.push(`${row.neutre}`)
+    extraParts.push(withUnit(row.neutre))
   }
-  if (row.pe) {
-    extraParts.push(`PE ${row.pe}`)
+  if (row.pe && !cableIncludesPE(row.cable)) {
+    extraParts.push(`PE ${withUnit(row.pe)}`)
   }
   if (extraParts.length > 0) {
     title += ` + ${extraParts.join(' + ')}`

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { CheckCircle2, FileSpreadsheet, Info, Maximize2, Minus, RefreshCw, X as Close } from 'lucide-react'
 import './App.css'
-import logo from '../public/logo.svg'
+import logo from './assets/logo.svg'
 
 type UpdateStatus = {
   state: 'idle' | 'available' | 'downloading' | 'downloaded' | 'error'
@@ -34,7 +34,8 @@ function App() {
   const [typePrices, setTypePrices] = useState<Record<string, string>>({})
   const [unitPrices, setUnitPrices] = useState<string[]>([])
   const [priceMode, setPriceMode] = useState<'perCable' | 'perLine'>('perLine')
-  const [defaultUnitPrice, setDefaultUnitPrice] = useState('0')
+  const [margin, setMargin] = useState('1.33')
+  const [appliedMargin, setAppliedMargin] = useState('1.33')
   const [tva, setTva] = useState('0')
   const [status, setStatus] = useState('En attente de selection.')
   const [error, setError] = useState('')
@@ -48,6 +49,8 @@ function App() {
   const [isDragging, setIsDragging] = useState(false)
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1)
   const [expandedStep, setExpandedStep] = useState<1 | 2 | 3>(1)
+  const [nexusFilledTypes, setNexusFilledTypes] = useState<Set<string>>(new Set())
+  const [nexusFilledLines, setNexusFilledLines] = useState<Set<number>>(new Set())
   const noDragStyle: CSSProperties = { WebkitAppRegion: 'no-drag' }
 
   const outputLabel = useMemo(() => {
@@ -128,28 +131,57 @@ function App() {
     return `${value.slice(0, 32)} ... ${value.slice(-28)}`
   }
 
-  const applyDefaultPrices = () => {
-    if (priceMode === 'perLine') {
-      if (previewRows.length === 0) return
-      setUnitPrices(previewRows.map(() => defaultUnitPrice))
-      return
-    }
-
-    if (cableTypes.length === 0) return
-    setTypePrices((prev) => {
-      const next: Record<string, string> = { ...prev }
-      cableTypes.forEach((type) => {
-        next[type] = defaultUnitPrice
+  const applyNexusPrices = async (typeOrder: string[], rows: PreviewRow[], marginValue: string) => {
+    if (!hasApi() || rows.length === 0) return
+    const parsedMargin = parseFloat(marginValue)
+    if (isNaN(parsedMargin) || parsedMargin <= 0) return
+    try {
+      const nexusPrices = await window.api.lookupCablePrices(typeOrder, parsedMargin)
+      const keys = Object.keys(nexusPrices)
+      if (keys.length === 0) return
+      const filledTypes = new Set<string>()
+      for (const key of typeOrder) {
+        if (nexusPrices[key] !== undefined) filledTypes.add(key)
+      }
+      const filledLines = new Set<number>()
+      rows.forEach((row, idx) => {
+        if (nexusPrices[row.typeCable || ''] !== undefined) filledLines.add(idx)
       })
-      return next
-    })
+      setTypePrices((prev) => {
+        const next = { ...prev }
+        for (const key of typeOrder) {
+          if (nexusPrices[key] !== undefined) next[key] = nexusPrices[key].toFixed(2)
+        }
+        return next
+      })
+      setUnitPrices((prev) => {
+        const next = [...prev]
+        rows.forEach((row, idx) => {
+          const p = nexusPrices[row.typeCable || '']
+          if (p !== undefined) next[idx] = p.toFixed(2)
+        })
+        return next
+      })
+      setNexusFilledTypes(filledTypes)
+      setNexusFilledLines(filledLines)
+      setAppliedMargin(marginValue)
+    } catch (err) {
+      console.error('NEXUS lookup error', err)
+    }
+  }
+
+  const recalculateNexusPrices = () => {
+    if (previewRows.length === 0) return
+    applyNexusPrices(cableTypes, previewRows, margin)
   }
 
   const updateTypePrice = (typeCable: string, value: string) => {
+    setNexusFilledTypes((prev) => { const s = new Set(prev); s.delete(typeCable); return s })
     setTypePrices((prev) => ({ ...prev, [typeCable]: value }))
   }
 
   const updateUnitPriceAt = (index: number, value: string) => {
+    setNexusFilledLines((prev) => { const s = new Set(prev); s.delete(index); return s })
     setUnitPrices((prev) => {
       const next = [...prev]
       next[index] = value
@@ -180,17 +212,27 @@ function App() {
         return a.localeCompare(b)
       })
       setPreviewRows(rows)
-      setUnitPrices((prev) => rows.map((_, index) => prev[index] ?? defaultUnitPrice))
+      setUnitPrices((prev) => rows.map((_, index) => prev[index] ?? ''))
       setCableTypes(typeOrder)
       setTypePrices((prev) => {
         const next: Record<string, string> = {}
         typeOrder.forEach((typeKey) => {
-          next[typeKey] = prev[typeKey] ?? defaultUnitPrice
+          next[typeKey] = prev[typeKey] ?? ''
         })
         return next
       })
+      setNexusFilledTypes(new Set())
+      setNexusFilledLines(new Set())
       setStatus(rows.length ? `Lignes chargees (${rows.length}).` : 'Aucune ligne detectee.')
       console.log('[CaneFlow UI] preview done', { count: rows.length })
+
+      if (hasApi() && rows.length > 0) {
+        try {
+          await applyNexusPrices(typeOrder, rows, margin)
+        } catch {
+          // NEXUS inaccessible — silencieux
+        }
+      }
     } catch (err) {
       console.error('previewRows', err)
       const errorMessage = err instanceof Error ? err.message : 'Impossible de lire le fichier Excel.'
@@ -200,6 +242,8 @@ function App() {
       setCableTypes([])
       setTypePrices({})
       setUnitPrices([])
+      setNexusFilledTypes(new Set())
+      setNexusFilledLines(new Set())
     } finally {
       setLoadingPreview(false)
     }
@@ -266,7 +310,6 @@ function App() {
       } = {
         inputPath,
         outputPath: finalOutputPath || undefined,
-        unitPrice: defaultUnitPrice || '',
         tva: tva || '',
         includeHeaders: true,
       }
@@ -372,6 +415,8 @@ function App() {
     setUnitPrices([])
     setDefaultUnitPrice('0')
     setTva('0')
+    setNexusFilledTypes(new Set())
+    setNexusFilledLines(new Set())
     setStatus('En attente de selection.')
     setError('')
     setLastExport(null)
@@ -497,73 +542,54 @@ function App() {
       <div className="bg-hex" />
 
       <div className="content">
-        <header className="hero">
-          <div className="hero-left">
-            <div className="logo-wrap">
-              <img src={logo} alt="CaneFlow" className="logo" />
-              <div className="logo-text">
-                <p className="eyebrow">CaneFlow</p>
-              </div>
-            </div>
-            <h1>Transforme un carnet de câbles Caneco en Excel Multidoc</h1>
-            <p className="lede">
-              Importe ton fichier Caneco, ajoute le prix unitaire par ligne ou par catégorie de câble, puis exporte un Excel prêt à importer dans Multidoc.{' '}
-              <button
-                className="info-inline-btn"
-                onClick={() => setShowInfo(true)}
-                aria-label="Voir les infos"
-                style={noDragStyle}
-              >
-                <Info size={16} />
-              </button>
-            </p>
+        <header className="app-bar">
+          <div className="app-bar-brand" style={noDragStyle}>
+            <img src={logo} alt="CaneFlow" className="app-bar-logo" />
+            <span className="app-bar-name">CaneFlow</span>
+            <span className="app-bar-version">v{currentVersion}</span>
           </div>
-          <div className="right-stack">
-            <div className="stats" style={noDragStyle}>
-              <div className="stat">
-                <span className="stat-label">Fichier</span>
-                <span className="stat-value">{inputPath ? 'Sélectionné' : 'En attente'}</span>
-              </div>
-              <div className="stat">
-                <span className="stat-label">État</span>
-                <div className="stat-value-row">
-                  <span className={`stat-value ${error ? 'error-text' : ''}`}>
-                    {error || (busy ? 'Conversion...' : loadingPreview ? 'Chargement...' : status)}
-                  </span>
-                  {(busy || loadingPreview) && (
-                    <RefreshCw size={16} className="spinner" />
-                  )}
-                </div>
-              </div>
-              <div className="stat">
-                <span className="stat-label">Lignes</span>
-                <span className="stat-value">{lastExport ? lastExport.rowCount : '-'}</span>
-              </div>
-            </div>
-            {updateStatus.state !== 'idle' ? (
-              <div className="update-box" style={noDragStyle}>
-                <div>
-                  <p className="label">Mise a jour</p>
-                  <p className="tiny">
-                    {updateStatus.state === 'available' && `Version ${updateStatus.version} disponible.`}
-                    {updateStatus.state === 'downloading' && `Telechargement... ${updateStatus.progress ?? 0}%`}
-                    {updateStatus.state === 'downloaded' && `Version ${updateStatus.version} telechargee.`}
-                    {updateStatus.state === 'error' && updateStatus.message}
-                  </p>
-                </div>
+
+          <div className="app-bar-stats" style={noDragStyle}>
+            <span className="app-bar-stat-label">Fichier</span>
+            <span className={`app-bar-stat-value ${!inputPath ? 'muted' : ''}`}>
+              {inputPath ? 'Sélectionné' : 'En attente'}
+            </span>
+            <span className="app-bar-divider" />
+            <span className="app-bar-stat-label">État</span>
+            <span className={`app-bar-stat-value ${error ? 'error' : ''}`}>
+              {(busy || loadingPreview) && <RefreshCw size={11} className="spinner" style={{ marginRight: 4 }} />}
+              {error || (busy ? 'Conversion…' : loadingPreview ? 'Chargement…' : status)}
+            </span>
+            {lastExport && (
+              <>
+                <span className="app-bar-divider" />
+                <span className="app-bar-stat-label">Lignes</span>
+                <span className="app-bar-stat-value">{lastExport.rowCount}</span>
+              </>
+            )}
+          </div>
+
+          <div className="app-bar-actions" style={noDragStyle}>
+            {updateStatus.state !== 'idle' && (
+              <div className="app-bar-update">
+                <span className="app-bar-stat-label">
+                  {updateStatus.state === 'available' && `v${updateStatus.version} disponible`}
+                  {updateStatus.state === 'downloading' && `Téléchargement ${updateStatus.progress ?? 0}%`}
+                  {updateStatus.state === 'downloaded' && `v${updateStatus.version} prête`}
+                  {updateStatus.state === 'error' && 'Erreur de mise à jour'}
+                </span>
                 {updateStatus.state === 'available' && (
-                  <button className="btn secondary small" onClick={downloadUpdate}>
-                    Telecharger
-                  </button>
+                  <button className="btn secondary small" onClick={downloadUpdate}>Télécharger</button>
                 )}
-                {updateStatus.state === 'downloading' && <span className="pill">Telechargement...</span>}
+                {updateStatus.state === 'downloading' && <RefreshCw size={13} className="spinner" />}
                 {updateStatus.state === 'downloaded' && (
-                  <button className="btn primary small" onClick={installUpdate}>
-                    Installer
-                  </button>
+                  <button className="btn primary small" onClick={installUpdate}>Installer</button>
                 )}
               </div>
-            ) : null}
+            )}
+            <button className="info-inline-btn" onClick={() => setShowInfo(true)} aria-label="Aide">
+              <Info size={15} />
+            </button>
           </div>
         </header>
 
@@ -636,7 +662,7 @@ function App() {
           </section>
 
           {/* ÉTAPE 2 */}
-          <section className={`panel ${expandedStep === 2 ? 'expanded' : 'collapsed'} ${currentStep >= 3 ? 'completed' : ''} ${currentStep < 2 ? 'locked' : ''}`}>
+          <section className={`panel price-panel ${expandedStep === 2 ? 'expanded' : 'collapsed'} ${currentStep >= 3 ? 'completed' : ''} ${currentStep < 2 ? 'locked' : ''}`}>
             <div className="panel-head" onClick={() => currentStep >= 2 && currentStep >= 3 && editStep(2)} style={currentStep >= 3 ? { cursor: 'pointer' } : {}}>
               <div>
                 <p className="eyebrow subtle">Etape 2</p>
@@ -644,8 +670,8 @@ function App() {
                 {expandedStep === 2 && (
                   <p className="hint">
                     {priceMode === 'perLine'
-                      ? 'Saisis un prix pour chaque ligne.'
-                      : 'Saisis un prix par câble (colonne D) et type (colonne G).'}
+                      ? 'Les prix sont synchronisés depuis NEXUS — complète les champs manquants.'
+                      : 'Les prix sont synchronisés depuis NEXUS — complète les champs manquants.'}
                   </p>
                 )}
                 {expandedStep !== 2 && currentStep >= 3 && (
@@ -676,46 +702,63 @@ function App() {
 
             {expandedStep === 2 && currentStep >= 2 && (
               <div className="panel-content">
-            <div className="price-mode" style={noDragStyle}>
-              <button
-                className={`btn ghost small ${priceMode === 'perLine' ? 'active' : ''}`}
-                onClick={() => setPriceMode('perLine')}
-              >
-                Par ligne
-              </button>
-              <button
-                className={`btn ghost small ${priceMode === 'perCable' ? 'active' : ''}`}
-                onClick={() => setPriceMode('perCable')}
-              >
-                Par câble + type
-              </button>
-            </div>
 
-            <div className="form-grid" style={noDragStyle}>
-              <label className="field">
-                <span className="label">Prix par defaut</span>
+            <div className="table-toolbar" style={noDragStyle}>
+              <div className="mode-tabs">
+                <button
+                  className={`mode-tab ${priceMode === 'perLine' ? 'active' : ''}`}
+                  onClick={() => setPriceMode('perLine')}
+                >
+                  Par ligne
+                </button>
+                <button
+                  className={`mode-tab ${priceMode === 'perCable' ? 'active' : ''}`}
+                  onClick={() => setPriceMode('perCable')}
+                >
+                  Par câble + type
+                </button>
+              </div>
+
+              <div className="toolbar-separator" />
+
+              <div className="toolbar-param">
+                <span className="toolbar-param-label">Marge ×</span>
                 <input
+                  className="toolbar-input"
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="1.33"
+                  value={margin}
+                  onChange={(event) => setMargin(event.target.value)}
+                />
+                <button
+                  className={`btn small ${margin !== appliedMargin ? 'primary pulse-cta' : 'ghost'}`}
+                  onClick={recalculateNexusPrices}
+                  disabled={previewRows.length === 0}
+                >
+                  Recalculer
+                </button>
+              </div>
+
+              <div className="toolbar-separator" />
+
+              <div className="toolbar-param">
+                <span className="toolbar-param-label">TVA</span>
+                <input
+                  className="toolbar-input"
                   type="text"
                   inputMode="decimal"
                   placeholder="0"
-                  value={defaultUnitPrice}
-                  onChange={(event) => setDefaultUnitPrice(event.target.value)}
+                  value={tva}
+                  onChange={(event) => setTva(event.target.value)}
                 />
-              </label>
-              <div className="field">
-                <span className="label">Actions</span>
-                <button
-                  className="btn ghost small"
-                  onClick={applyDefaultPrices}
-                  disabled={priceMode === 'perLine' ? !previewRows.length : !cableTypes.length}
-                >
-                  Appliquer a toutes
-                </button>
+                <span className="toolbar-param-label">%</span>
               </div>
-              <label className="field">
-                <span className="label">TVA</span>
-                <input type="text" inputMode="decimal" placeholder="0" value={tva} onChange={(event) => setTva(event.target.value)} />
-              </label>
+
+              <div className="toolbar-legend">
+                <span className="legend-dot nexus" />
+                <span className="toolbar-param-label">Prix NEXUS</span>
+              </div>
             </div>
 
             {loadingPreview ? (
@@ -730,7 +773,9 @@ function App() {
                     <div className="price-cell qty">Qt</div>
                     <div className="price-cell input">Prix</div>
                   </div>
-                  {previewRows.map((row, index) => (
+                  {previewRows.map((row, index) => {
+                    const isMissing = !nexusFilledLines.has(index) && unitPrices[index] === ''
+                    return (
                     <div className="price-row lines" key={row.lineNumber}>
                       <div className="price-cell">{row.lineNumber}</div>
                       <div className="price-cell title">{row.title}</div>
@@ -738,7 +783,8 @@ function App() {
                       <div className="price-cell qty">{row.quantity}</div>
                       <div className="price-cell input">
                         <input
-                          className="price-input"
+                          className={`price-input${nexusFilledLines.has(index) ? ' nexus-filled' : (isMissing ? ' price-missing' : '')}`}
+                          style={isMissing ? { animationDelay: `${(index % 15) * 0.1}s` } : undefined}
                           type="text"
                           inputMode="decimal"
                           placeholder="0"
@@ -747,7 +793,8 @@ function App() {
                         />
                       </div>
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
               ) : (
                 <div className="price-table-empty">Charge un fichier pour voir les lignes.</div>
@@ -759,13 +806,16 @@ function App() {
                   <div className="price-cell qty">Lignes</div>
                   <div className="price-cell input">Prix</div>
                 </div>
-                {cableTypes.map((typeKey) => (
+                {cableTypes.map((typeKey, typeIdx) => {
+                  const isMissing = !nexusFilledTypes.has(typeKey) && typePrices[typeKey] === ''
+                  return (
                   <div className="price-row types" key={typeKey || 'type-vide'}>
                     <div className="price-cell title">{formatCableType(typeKey)}</div>
                     <div className="price-cell qty">{typeCounts[typeKey] ?? 0}</div>
                     <div className="price-cell input">
                       <input
-                        className="price-input"
+                        className={`price-input${nexusFilledTypes.has(typeKey) ? ' nexus-filled' : (isMissing ? ' price-missing' : '')}`}
+                        style={isMissing ? { animationDelay: `${typeIdx * 0.1}s` } : undefined}
                         type="text"
                         inputMode="decimal"
                         placeholder="0"
@@ -774,7 +824,8 @@ function App() {
                       />
                     </div>
                   </div>
-                ))}
+                  )
+                })}
               </div>
             ) : (
               <div className="price-table-empty">Charge un fichier pour voir les câbles + types.</div>

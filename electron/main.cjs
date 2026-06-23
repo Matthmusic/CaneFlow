@@ -203,6 +203,11 @@ ipcMain.handle('convert-file', async (_event, payload) => {
   return { outputPath, rowCount: dataRowCount }
 })
 
+ipcMain.handle('lookup-cable-prices', async (_event, compositeKeys, margin) => {
+  const { lookupCablePrices } = require('./nexus.cjs')
+  return lookupCablePrices(compositeKeys, margin)
+})
+
 ipcMain.handle('reveal-path', async (_event, targetPath) => {
   if (!targetPath) return
   shell.showItemInFolder(targetPath)

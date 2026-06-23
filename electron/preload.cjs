@@ -18,6 +18,7 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.on('app-log', listener)
     return () => ipcRenderer.removeListener('app-log', listener)
   },
+  lookupCablePrices: (compositeKeys, margin) => ipcRenderer.invoke('lookup-cable-prices', compositeKeys, margin),
   revealPath: (targetPath) => ipcRenderer.invoke('reveal-path', targetPath),
   windowClose: () => ipcRenderer.invoke('window-close'),
   windowMinimize: () => ipcRenderer.invoke('window-minimize'),

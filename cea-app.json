@@ -4,7 +4,7 @@
   "app": {
     "id": "caneflow",
     "name": "CaneFlow",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "description": {
       "short": "Conversion rapide de carnets de câbles Caneco vers Multidoc",
       "long": "CaneFlow est une application Electron moderne qui convertit automatiquement les carnets de câbles exportés depuis Caneco en fichiers Excel compatibles Multidoc. Interface intuitive avec prévisualisation, tarification par ligne ou par type de câble, et gestion de la TVA. Simplifie le workflow de chiffrage électrique en automatisant la conversion des données."
@@ -79,9 +79,23 @@
   },
   "installation": {
     "type": "installer",
-    "downloadUrl": "https://github.com/Matthmusic/CaneFlow/releases/latest/download/CaneFlow-0.2.0-Setup.exe"
+    "downloadUrl": "https://github.com/Matthmusic/CaneFlow/releases/latest/download/CaneFlow-0.3.0-Setup.exe"
   },
   "changelog": {
+    "0.3.0": {
+      "date": "2026-06-23",
+      "changes": [
+        "Intégration NEXUS : auto-remplissage des prix câbles depuis la base de données partagée",
+        "Formule prix : matériel × marge + coût de pose par section",
+        "Marge configurable (défaut 1.33) avec recalcul à la demande",
+        "Contour violet sur les champs pré-remplis par NEXUS, pulse orange sur les champs manquants",
+        "Cascade d'animation sur les champs à compléter",
+        "Ajout de mm² après les sections câble, neutre et PE dans les titres",
+        "Refonte de l'interface étape 2 : toolbar unifiée (mode, marge, TVA, légende)",
+        "Header compact (app-bar 48px) pour gagner de la hauteur sur les étapes",
+        "Tableau de prix en hauteur adaptative selon la fenêtre"
+      ]
+    },
     "0.2.0": {
       "date": "2026-01-06",
       "changes": [
