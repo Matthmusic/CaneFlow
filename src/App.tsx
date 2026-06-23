@@ -170,10 +170,6 @@ function App() {
     }
   }
 
-  const recalculateNexusPrices = () => {
-    if (previewRows.length === 0) return
-    applyNexusPrices(cableTypes, previewRows, margin)
-  }
 
   const updateTypePrice = (typeCable: string, value: string) => {
     setNexusFilledTypes((prev) => { const s = new Set(prev); s.delete(typeCable); return s })
@@ -413,7 +409,7 @@ function App() {
     setCableTypes([])
     setTypePrices({})
     setUnitPrices([])
-    setDefaultUnitPrice('0')
+    setMargin('1.33')
     setTva('0')
     setNexusFilledTypes(new Set())
     setNexusFilledLines(new Set())
@@ -669,9 +665,7 @@ function App() {
                 <h2>Définir les prix</h2>
                 {expandedStep === 2 && (
                   <p className="hint">
-                    {priceMode === 'perLine'
-                      ? 'Les prix sont synchronisés depuis NEXUS — complète les champs manquants.'
-                      : 'Les prix sont synchronisés depuis NEXUS — complète les champs manquants.'}
+                    Les prix sont synchronisés depuis NEXUS — complète les champs manquants.
                   </p>
                 )}
                 {expandedStep !== 2 && currentStep >= 3 && (
@@ -733,7 +727,7 @@ function App() {
                 />
                 <button
                   className={`btn small ${margin !== appliedMargin ? 'primary pulse-cta' : 'ghost'}`}
-                  onClick={recalculateNexusPrices}
+                  onClick={() => applyNexusPrices(cableTypes, previewRows, margin)}
                   disabled={previewRows.length === 0}
                 >
                   Recalculer

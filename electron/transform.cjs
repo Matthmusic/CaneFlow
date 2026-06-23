@@ -92,13 +92,21 @@ function rowFromArray(row, indices) {
   }
 }
 
+const CABLE_KEY_SEP = ' | '
+
 function buildCableKey(row) {
   const cable = normalizeText(row.cable)
   const typeCable = normalizeText(row.typeCable)
   if (cable && typeCable) {
-    return `${cable} | ${typeCable}`
+    return `${cable}${CABLE_KEY_SEP}${typeCable}`
   }
   return cable || typeCable || ''
+}
+
+function parseCableKey(key) {
+  const idx = key.indexOf(CABLE_KEY_SEP)
+  if (idx === -1) return { cable: key, typeCable: '' }
+  return { cable: key.slice(0, idx), typeCable: key.slice(idx + CABLE_KEY_SEP.length) }
 }
 
 function cableIncludesPE(cable) {
@@ -254,4 +262,5 @@ module.exports = {
   mapSheetRows,
   normalizeNumber,
   normalizeText,
+  parseCableKey,
 }
