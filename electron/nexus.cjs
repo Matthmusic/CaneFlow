@@ -6,6 +6,8 @@ const MARGIN = 1.33
 const CABLE_KEY_SEP = ' | '
 const EMBEDDED_CABLES_PATH = path.join(__dirname, 'cables.json')
 
+const NEXUS_PRICES_URL = 'https://pub-12c18956bbe54a0888d82fd2921c8aa4.r2.dev/prices.json'
+const NEXUS_FALLBACK_DIR = 'Z:\\F - UTILITAIRES\\NEXUS'
 const NEXUS_CONFIG_PATH = process.env.APPDATA
   ? path.join(process.env.APPDATA, 'nexus', 'config.json')
   : path.join(os.homedir(), 'AppData', 'Roaming', 'nexus', 'config.json')
@@ -21,11 +23,8 @@ const CABLE_CATEGORIES = new Set([
   'cables telephoniques',
 ])
 
-// cables.json est un asset statique embarqué — chargé une seule fois au démarrage
 let _cablesData = null
 
-// prices.json NEXUS est sur disque/réseau — pas de cache persistant
-// pour permettre les retry si le réseau n'était pas accessible au premier appel
 function norm(s) {
   return String(s || '')
     .trim()
@@ -46,11 +45,15 @@ function normSection(s) {
     .replace(/\s+/g, '')
 }
 
-// Inline — évite la dépendance externe vers transform.cjs dans le package ASAR
 function parseCableKey(key) {
   const idx = key.indexOf(CABLE_KEY_SEP)
   if (idx === -1) return { cable: key, typeCable: '' }
   return { cable: key.slice(0, idx), typeCable: key.slice(idx + CABLE_KEY_SEP.length) }
+}
+
+function filterCableItems(db) {
+  const items = Array.isArray(db.items) ? db.items : []
+  return items.filter((item) => CABLE_CATEGORIES.has(norm(item.category || '')))
 }
 
 function getNexusDataDir() {
@@ -63,18 +66,27 @@ function getNexusDataDir() {
   }
 }
 
-function loadNexusCableItems() {
-  const dataDir = getNexusDataDir()
-  if (!dataDir) return []
-  const pricesPath = path.join(dataDir, 'prices.json')
+async function loadNexusCableItems() {
+  // 1. R2 online (fonctionne partout, même hors réseau local)
   try {
-    if (!fs.existsSync(pricesPath)) return []
-    const db = JSON.parse(fs.readFileSync(pricesPath, 'utf-8'))
-    const items = Array.isArray(db.items) ? db.items : []
-    return items.filter((item) => CABLE_CATEGORIES.has(norm(item.category || '')))
-  } catch {
-    return []
+    const res = await fetch(NEXUS_PRICES_URL, { signal: AbortSignal.timeout(5000) })
+    if (res.ok) return filterCableItems(await res.json())
+  } catch {}
+
+  // 2. Fallback Z: réseau local
+  const candidates = []
+  const configDir = getNexusDataDir()
+  if (configDir) candidates.push(path.join(configDir, 'prices.json'))
+  candidates.push(path.join(NEXUS_FALLBACK_DIR, 'prices.json'))
+
+  for (const pricesPath of candidates) {
+    try {
+      if (!fs.existsSync(pricesPath)) continue
+      return filterCableItems(JSON.parse(fs.readFileSync(pricesPath, 'utf-8')))
+    } catch {}
   }
+
+  return []
 }
 
 function loadCablesData() {
@@ -102,7 +114,6 @@ function matchMaterialPrice(cable, typeCable, items, exactMap) {
     }
   }
 
-  // Pass section seule uniquement si pas de typeCable
   if (!normType && normCable) {
     for (const item of items) {
       if (norm(item.name).includes(normCable)) return item.price
@@ -121,11 +132,11 @@ function matchPoseEntry(cable, cablesData) {
   return undefined
 }
 
-function lookupCablePrices(compositeKeys, margin = MARGIN) {
+async function lookupCablePrices(compositeKeys, margin = MARGIN) {
   const result = {}
   if (!Array.isArray(compositeKeys) || compositeKeys.length === 0) return result
 
-  const nexusItems = loadNexusCableItems()
+  const nexusItems = await loadNexusCableItems()
   const cablesData = loadCablesData()
 
   const exactMap = new Map()
