@@ -208,15 +208,9 @@ function App() {
         return a.localeCompare(b)
       })
       setPreviewRows(rows)
-      setUnitPrices((prev) => rows.map((_, index) => prev[index] ?? ''))
+      setUnitPrices(rows.map(() => ''))
       setCableTypes(typeOrder)
-      setTypePrices((prev) => {
-        const next: Record<string, string> = {}
-        typeOrder.forEach((typeKey) => {
-          next[typeKey] = prev[typeKey] ?? ''
-        })
-        return next
-      })
+      setTypePrices(Object.fromEntries(typeOrder.map((k) => [k, ''])))
       setNexusFilledTypes(new Set())
       setNexusFilledLines(new Set())
       setStatus(rows.length ? `Lignes chargees (${rows.length}).` : 'Aucune ligne detectee.')
