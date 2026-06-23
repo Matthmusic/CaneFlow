@@ -23,7 +23,12 @@ const CABLE_CATEGORIES = new Set([
   'cables telephoniques',
 ])
 
+const CACHE_TTL_MS = 5 * 60 * 1000
+
 let _cablesData = null
+let _nexusItemsCache = null
+let _nexusItemsCachedAt = 0
+let _nexusExactMap = null
 
 function norm(s) {
   return String(s || '')
@@ -36,13 +41,7 @@ function norm(s) {
 }
 
 function normSection(s) {
-  return String(s || '')
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/,/g, '.')
-    .replace(/\s+/g, '')
+  return norm(s).replace(/\s/g, '')
 }
 
 function parseCableKey(key) {
@@ -67,26 +66,47 @@ function getNexusDataDir() {
 }
 
 async function loadNexusCableItems() {
+  const now = Date.now()
+  if (_nexusItemsCache !== null && now - _nexusItemsCachedAt < CACHE_TTL_MS) {
+    return _nexusItemsCache
+  }
+
+  let items = null
+
   // 1. R2 online (fonctionne partout, même hors réseau local)
   try {
     const res = await fetch(NEXUS_PRICES_URL, { signal: AbortSignal.timeout(5000) })
-    if (res.ok) return filterCableItems(await res.json())
+    if (res.ok) items = filterCableItems(await res.json())
   } catch {}
 
-  // 2. Fallback Z: réseau local
-  const candidates = []
-  const configDir = getNexusDataDir()
-  if (configDir) candidates.push(path.join(configDir, 'prices.json'))
-  candidates.push(path.join(NEXUS_FALLBACK_DIR, 'prices.json'))
-
-  for (const pricesPath of candidates) {
-    try {
-      if (!fs.existsSync(pricesPath)) continue
-      return filterCableItems(JSON.parse(fs.readFileSync(pricesPath, 'utf-8')))
-    } catch {}
+  // 2. Fallback Z: réseau local puis config NEXUS locale
+  if (items === null) {
+    const configDir = getNexusDataDir()
+    for (const dir of [configDir, NEXUS_FALLBACK_DIR].filter(Boolean)) {
+      const pricesPath = path.join(dir, 'prices.json')
+      try {
+        if (!fs.existsSync(pricesPath)) continue
+        items = filterCableItems(JSON.parse(fs.readFileSync(pricesPath, 'utf-8')))
+        break
+      } catch {}
+    }
   }
 
-  return []
+  _nexusItemsCache = items ?? []
+  _nexusItemsCachedAt = now
+  _nexusExactMap = null
+  return _nexusItemsCache
+}
+
+function getExactMap(nexusItems) {
+  if (_nexusExactMap !== null) return _nexusExactMap
+  const map = new Map()
+  for (const item of nexusItems) {
+    const k = norm(item.name)
+    if (!map.has(k)) map.set(k, item.price)
+  }
+  _nexusExactMap = map
+  return map
 }
 
 function loadCablesData() {
@@ -107,17 +127,9 @@ function matchMaterialPrice(cable, typeCable, items, exactMap) {
 
   if (exactMap.has(fullKey)) return exactMap.get(fullKey)
 
-  if (normType && normCable) {
-    for (const item of items) {
-      const n = norm(item.name)
-      if (n.includes(normType) && n.includes(normCable)) return item.price
-    }
-  }
-
-  if (!normType && normCable) {
-    for (const item of items) {
-      if (norm(item.name).includes(normCable)) return item.price
-    }
+  for (const item of items) {
+    const n = norm(item.name)
+    if (normCable && n.includes(normCable) && (!normType || n.includes(normType))) return item.price
   }
 
   return undefined
@@ -138,12 +150,7 @@ async function lookupCablePrices(compositeKeys, margin = MARGIN) {
 
   const nexusItems = await loadNexusCableItems()
   const cablesData = loadCablesData()
-
-  const exactMap = new Map()
-  for (const item of nexusItems) {
-    const k = norm(item.name)
-    if (!exactMap.has(k)) exactMap.set(k, item.price)
-  }
+  const exactMap = getExactMap(nexusItems)
 
   for (const key of compositeKeys) {
     const { cable, typeCable } = parseCableKey(key)
