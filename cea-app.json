@@ -4,7 +4,7 @@
   "app": {
     "id": "caneflow",
     "name": "CaneFlow",
-    "version": "0.4.3",
+    "version": "0.4.4",
     "description": {
       "short": "Conversion rapide de carnets de câbles Caneco vers Multidoc",
       "long": "CaneFlow est une application Electron moderne qui convertit automatiquement les carnets de câbles exportés depuis Caneco en fichiers Excel compatibles Multidoc. Interface intuitive avec prévisualisation, tarification par ligne ou par type de câble, et gestion de la TVA. Simplifie le workflow de chiffrage électrique en automatisant la conversion des données."
@@ -79,9 +79,15 @@
   },
   "installation": {
     "type": "installer",
-    "downloadUrl": "https://github.com/Matthmusic/CaneFlow/releases/latest/download/CaneFlow-0.4.3-Setup.exe"
+    "downloadUrl": "https://github.com/Matthmusic/CaneFlow/releases/latest/download/CaneFlow-0.4.4-Setup.exe"
   },
   "changelog": {
+    "0.4.4": {
+      "date": "2026-06-24",
+      "changes": [
+        "Modale infos : noms des champs Caneco (TabAmont, RepCir, Longueur, Cable, Neutre, PE, TypCable) affichés sous chaque colonne"
+      ]
+    },
     "0.4.3": {
       "date": "2026-06-24",
       "changes": [

@@ -498,13 +498,20 @@ function App() {
                   <div>Colonnes Caneco</div>
                 </div>
                 <div className="info-row caneco-columns">
-                  <span>Amont</span>
-                  <span>Descriptif</span>
-                  <span>Longueur</span>
-                  <span>Câble</span>
-                  <span>Neutre</span>
-                  <span>PE ou PEN</span>
-                  <span>Type de câble</span>
+                  {[
+                    { label: 'Amont',         field: 'TabAmont' },
+                    { label: 'Descriptif',    field: 'RepCir'   },
+                    { label: 'Longueur',      field: 'Longueur' },
+                    { label: 'Câble',         field: 'Cable'    },
+                    { label: 'Neutre',        field: 'Neutre'   },
+                    { label: 'PE ou PEN',     field: 'PE'       },
+                    { label: 'Type de câble', field: 'TypCable' },
+                  ].map(({ label, field }) => (
+                    <div key={field} className="caneco-col">
+                      <span className="caneco-col-label">{label}</span>
+                      <span className="caneco-col-field">{field}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
 
