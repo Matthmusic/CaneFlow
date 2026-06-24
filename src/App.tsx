@@ -25,6 +25,33 @@ type PreviewRow = {
 
 const hasApi = () => typeof window !== 'undefined' && typeof (window as any).api !== 'undefined'
 
+type NexusDetail = { mat: number; margin: number; tpsPose: number; puPose: number; ptPose: number }
+
+function NexusPill({ detail }: { detail: NexusDetail }) {
+  const matMarged = detail.mat * detail.margin
+  return (
+    <div className="nexus-pill">
+      <div className="nexus-pill-row">
+        <span className="nexus-pill-label">Matériau</span>
+        <span className="nexus-pill-calc">
+          {detail.mat.toFixed(3)} €/ml <span className="nexus-pill-op">×</span> {detail.margin} <span className="nexus-pill-op">=</span> <strong>{matMarged.toFixed(3)} €/ml</strong>
+        </span>
+      </div>
+      <div className="nexus-pill-row">
+        <span className="nexus-pill-label">Pose</span>
+        <span className="nexus-pill-calc">
+          {detail.tpsPose} h <span className="nexus-pill-op">×</span> {detail.puPose.toFixed(2)} €/h <span className="nexus-pill-op">=</span> <strong>{detail.ptPose.toFixed(3)} €/ml</strong>
+        </span>
+      </div>
+      <div className="nexus-pill-divider" />
+      <div className="nexus-pill-row nexus-pill-total">
+        <span className="nexus-pill-label">Total</span>
+        <strong>{(matMarged + detail.ptPose).toFixed(2)} €/ml</strong>
+      </div>
+    </div>
+  )
+}
+
 function App() {
   const currentVersion = import.meta.env.VITE_APP_VERSION || '0.0.0'
   const [inputPath, setInputPath] = useState('')
@@ -51,6 +78,9 @@ function App() {
   const [expandedStep, setExpandedStep] = useState<1 | 2 | 3>(1)
   const [nexusFilledTypes, setNexusFilledTypes] = useState<Set<string>>(new Set())
   const [nexusFilledLines, setNexusFilledLines] = useState<Set<number>>(new Set())
+  const [nexusSource, setNexusSource] = useState<'r2' | 'fallback' | 'none' | null>(null)
+  const [nexusDetails, setNexusDetails] = useState<Record<string, { mat: number; margin: number; tpsPose: number; puPose: number; ptPose: number }>>({})
+
   const noDragStyle: CSSProperties = { WebkitAppRegion: 'no-drag' }
 
   const outputLabel = useMemo(() => {
@@ -136,9 +166,10 @@ function App() {
     const parsedMargin = parseFloat(marginValue)
     if (isNaN(parsedMargin) || parsedMargin <= 0) return
     try {
-      const nexusPrices = await window.api.lookupCablePrices(typeOrder, parsedMargin)
-      const keys = Object.keys(nexusPrices)
-      if (keys.length === 0) return
+      const { prices: nexusPrices, source, details } = await window.api.lookupCablePrices(typeOrder, parsedMargin)
+      setNexusSource(source)
+      setNexusDetails(details)
+      if (Object.keys(nexusPrices).length === 0) return
       const filledTypes = new Set<string>()
       for (const key of typeOrder) {
         if (nexusPrices[key] !== undefined) filledTypes.add(key)
@@ -217,11 +248,7 @@ function App() {
       console.log('[CaneFlow UI] preview done', { count: rows.length })
 
       if (hasApi() && rows.length > 0) {
-        try {
-          await applyNexusPrices(typeOrder, rows, margin)
-        } catch {
-          // NEXUS inaccessible — silencieux
-        }
+        await applyNexusPrices(typeOrder, rows, margin)
       }
     } catch (err) {
       console.error('previewRows', err)
@@ -407,6 +434,9 @@ function App() {
     setTva('0')
     setNexusFilledTypes(new Set())
     setNexusFilledLines(new Set())
+    setNexusSource(null)
+    setNexusDetails({})
+    setAppliedMargin('1.33')
     setStatus('En attente de selection.')
     setError('')
     setLastExport(null)
@@ -420,6 +450,12 @@ function App() {
         <div className="window-title">
           <img src={logo} alt="CaneFlow" className="title-logo" />
           <span className="window-title-text">CaneFlow</span>
+          {nexusSource !== null && (
+            <span
+              className={`nexus-dot nexus-dot--${nexusSource}`}
+              title={nexusSource === 'r2' ? 'NEXUS connecté via R2' : nexusSource === 'fallback' ? 'NEXUS via réseau local (Z:)' : 'NEXUS non disponible'}
+            />
+          )}
         </div>
         <div className="window-controls">
           <button className="btn-icon info" aria-label="Infos" onClick={() => setShowInfo(true)}>
@@ -770,15 +806,20 @@ function App() {
                       <div className="price-cell cable">{row.typeCable || '-'}</div>
                       <div className="price-cell qty">{row.quantity}</div>
                       <div className="price-cell input">
-                        <input
-                          className={`price-input${nexusFilledLines.has(index) ? ' nexus-filled' : (isMissing ? ' price-missing' : '')}`}
-                          style={isMissing ? { animationDelay: `${(index % 15) * 0.1}s` } : undefined}
-                          type="text"
-                          inputMode="decimal"
-                          placeholder="0"
-                          value={unitPrices[index] ?? ''}
-                          onChange={(event) => updateUnitPriceAt(index, event.target.value)}
-                        />
+                        <div className="nexus-price-wrap">
+                          <input
+                            className={`price-input${nexusFilledLines.has(index) ? ' nexus-filled' : (isMissing ? ' price-missing' : '')}`}
+                            style={isMissing ? { animationDelay: `${(index % 15) * 0.1}s` } : undefined}
+                            type="text"
+                            inputMode="decimal"
+                            placeholder="0"
+                            value={unitPrices[index] ?? ''}
+                            onChange={(event) => updateUnitPriceAt(index, event.target.value)}
+                          />
+                          {nexusFilledLines.has(index) && nexusDetails[row.typeCable] && (
+                            <NexusPill detail={nexusDetails[row.typeCable]} />
+                          )}
+                        </div>
                       </div>
                     </div>
                     )
@@ -801,15 +842,20 @@ function App() {
                     <div className="price-cell title">{formatCableType(typeKey)}</div>
                     <div className="price-cell qty">{typeCounts[typeKey] ?? 0}</div>
                     <div className="price-cell input">
-                      <input
-                        className={`price-input${nexusFilledTypes.has(typeKey) ? ' nexus-filled' : (isMissing ? ' price-missing' : '')}`}
-                        style={isMissing ? { animationDelay: `${typeIdx * 0.1}s` } : undefined}
-                        type="text"
-                        inputMode="decimal"
-                        placeholder="0"
-                        value={typePrices[typeKey] ?? ''}
-                        onChange={(event) => updateTypePrice(typeKey, event.target.value)}
-                      />
+                      <div className="nexus-price-wrap">
+                        <input
+                          className={`price-input${nexusFilledTypes.has(typeKey) ? ' nexus-filled' : (isMissing ? ' price-missing' : '')}`}
+                          style={isMissing ? { animationDelay: `${typeIdx * 0.1}s` } : undefined}
+                          type="text"
+                          inputMode="decimal"
+                          placeholder="0"
+                          value={typePrices[typeKey] ?? ''}
+                          onChange={(event) => updateTypePrice(typeKey, event.target.value)}
+                        />
+                        {nexusFilledTypes.has(typeKey) && nexusDetails[typeKey] && (
+                          <NexusPill detail={nexusDetails[typeKey]} />
+                        )}
+                      </div>
                     </div>
                   </div>
                   )

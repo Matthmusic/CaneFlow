@@ -4,7 +4,7 @@
   "app": {
     "id": "caneflow",
     "name": "CaneFlow",
-    "version": "0.4.2",
+    "version": "0.4.3",
     "description": {
       "short": "Conversion rapide de carnets de câbles Caneco vers Multidoc",
       "long": "CaneFlow est une application Electron moderne qui convertit automatiquement les carnets de câbles exportés depuis Caneco en fichiers Excel compatibles Multidoc. Interface intuitive avec prévisualisation, tarification par ligne ou par type de câble, et gestion de la TVA. Simplifie le workflow de chiffrage électrique en automatisant la conversion des données."
@@ -79,9 +79,21 @@
   },
   "installation": {
     "type": "installer",
-    "downloadUrl": "https://github.com/Matthmusic/CaneFlow/releases/latest/download/CaneFlow-0.4.2-Setup.exe"
+    "downloadUrl": "https://github.com/Matthmusic/CaneFlow/releases/latest/download/CaneFlow-0.4.3-Setup.exe"
   },
   "changelog": {
+    "0.4.3": {
+      "date": "2026-06-24",
+      "changes": [
+        "Indicateur de connexion NEXUS dans la barre de titre (vert = R2, jaune = réseau local, rouge = indisponible)",
+        "Tooltip au survol des prix pré-remplis : détail du calcul (matériau × marge + temps de pose × taux horaire)",
+        "Correction du matching NEXUS : câbles avec suffixe de température (ex. U1000R2V 90°C) maintenant reconnus",
+        "Correction : fallback réseau local (Z:) maintenant tenté même quand R2 renvoie 0 article",
+        "Catégories câbles NEXUS étendues : coaxiaux, haute température, cuivre nu, domotique, industrie et spéciaux, installations de sécurité",
+        "Correction : bouton Recalculer ne restait plus actif à tort après un nouvel export",
+        "Optimisation : noms NEXUS pré-normalisés sans espaces pour le matching (évite O(n×k) appels norm())"
+      ]
+    },
     "0.4.2": {
       "date": "2026-06-23",
       "changes": [

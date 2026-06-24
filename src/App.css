@@ -281,6 +281,87 @@
   letter-spacing: 0.01em;
 }
 
+.nexus-price-wrap {
+  position: relative;
+  display: flex;
+  width: 100%;
+}
+
+.nexus-pill {
+  pointer-events: none;
+  opacity: 0;
+  position: absolute;
+  right: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: #0b1220;
+  border: 1px solid #6d28d9;
+  border-radius: 8px;
+  padding: 8px 12px;
+  white-space: nowrap;
+  z-index: 50;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #cbd5e1;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  transition: opacity 0.15s ease;
+}
+
+.nexus-price-wrap:hover .nexus-pill {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.nexus-pill-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nexus-pill-label {
+  width: 68px;
+  color: #94a3b8;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+
+.nexus-pill-calc {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.nexus-pill-op {
+  color: #6d28d9;
+  font-weight: 700;
+}
+
+.nexus-pill-divider {
+  border-top: 1px solid #1d2642;
+  margin: 5px 0;
+}
+
+.nexus-pill-total {
+  color: #e2e8f0;
+}
+
+.nexus-pill-total strong {
+  font-size: 13px;
+  color: #a78bfa;
+}
+
+.nexus-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.nexus-dot--r2       { background: #22c55e; box-shadow: 0 0 5px #22c55e99; }
+.nexus-dot--fallback { background: #f59e0b; box-shadow: 0 0 5px #f59e0b99; }
+.nexus-dot--none     { background: #ef4444; box-shadow: 0 0 5px #ef444499; }
+
 
 .info-inline-btn {
   background: transparent;

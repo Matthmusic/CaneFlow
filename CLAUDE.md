@@ -37,6 +37,8 @@ electron/preload.cjs     — Pont contextIsolation : expose window.api via conte
 electron/main.cjs        — Process principal : BrowserWindow, ipcMain handlers, autoUpdater
 electron/excel.cjs       — Lecture/écriture Excel (xlsx + ExcelJS) + conversion .xls via PowerShell/COM
 electron/transform.cjs   — Logique métier : parsing des lignes Caneco, génération du titre, mapping Multidoc
+electron/nexus.cjs       — Lookup des prix câbles depuis NEXUS (R2 → Z: → config locale)
+electron/cables.json     — Coûts de pose par section (pt_pose_value), embarqué dans l'ASAR
 ```
 
 ### Flux de données
@@ -67,10 +69,27 @@ L'ordre par défaut est : Amont (0), Repere (1), Longueur (2), Cable (3), Neutre
 | `preview-rows` | renderer → main | Lecture + preview des lignes Caneco |
 | `convert-file` | renderer → main | Conversion complète vers Multidoc |
 | `reveal-path` | renderer → main | Ouvre le dossier dans l'explorateur |
+| `lookup-cable-prices` | renderer → main | Lookup des prix câbles depuis NEXUS (R2 → Z: → config locale) |
 | `check-updates` / `download-update` / `install-update` | renderer → main | Auto-update via electron-updater |
 | `window-close` / `window-minimize` / `window-toggle-maximize` | renderer → main | Contrôles de fenêtre (frame: false) |
 | `update-event` | main → renderer | Événements de mise à jour |
 | `app-log` | main → renderer | Logs redirigés vers la console du renderer |
+
+### Intégration NEXUS (nexus.cjs)
+
+Lookup automatique des prix câbles au chargement d'un fichier Caneco.
+
+**Priorité de source** : Cloudflare R2 (5 s timeout) → `Z:\F - UTILITAIRES\NEXUS\prices.json` → `%APPDATA%\nexus\config.json` → `dataDir\prices.json`
+
+**Clé composite** : `buildCableKey(row)` dans `transform.cjs` produit `"cable | typeCable"` (séparateur `CABLE_KEY_SEP = ' | '`). Ces clés sont passées comme `compositeKeys` à `lookupCablePrices`, puis re-splitées dans `parseCableKey`.
+
+**Formule prix** : `materialPrice × margin + pt_pose_value` (marge par défaut 1.33, pose depuis `cables.json`).
+
+**Match** : lookup exact sur `norm(typeCable + ' ' + cable)` dans l'exactMap, puis scan linéaire sur `normNames` (noms pré-normalisés). Les items sont filtrés par `CABLE_CATEGORIES` (13 catégories câbles — ne pas en ajouter sans vérifier les catégories dans `prices.json`).
+
+**Cache** : TTL 5 min par variable de module (`_nexusItemsCache`, `_nexusExactMap`, `_nexusNormNames`). Le fallback Z:/local est aussi tenté si R2 renvoie 0 article (pas seulement en cas d'erreur réseau).
+
+**ASAR** : `nexus.cjs` est autonome — ne pas le faire `require()` depuis `transform.cjs` ni l'inverse, sous peine d'échec silencieux dans l'app packagée.
 
 ### Releases
 

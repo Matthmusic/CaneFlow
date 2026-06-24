@@ -17,10 +17,15 @@ const CABLE_CATEGORIES = new Set([
   'cables incendie',
   'moyenne tension',
   'fils et cables souples',
-  'domestique rigide',
   'cables speciaux',
   'cables alarmes',
   'cables telephoniques',
+  'cables coaxiaux et reseaux',
+  'cables haute temperature',
+  'cuivre nu',
+  'domotique',
+  'industrie et speciaux',
+  'installations de securite',
 ])
 
 const CACHE_TTL_MS = 5 * 60 * 1000
@@ -29,6 +34,8 @@ let _cablesData = null
 let _nexusItemsCache = null
 let _nexusItemsCachedAt = 0
 let _nexusExactMap = null
+let _nexusNormNames = null
+let _nexusSource = 'none'
 
 function norm(s) {
   return String(s || '')
@@ -79,8 +86,8 @@ async function loadNexusCableItems() {
     if (res.ok) items = filterCableItems(await res.json())
   } catch {}
 
-  // 2. Fallback Z: réseau local puis config NEXUS locale
-  if (items === null) {
+  // 2. Fallback Z: réseau local puis config NEXUS locale (aussi si R2 a renvoyé 0 article)
+  if (!items?.length) {
     const configDir = getNexusDataDir()
     for (const dir of [configDir, NEXUS_FALLBACK_DIR].filter(Boolean)) {
       const pricesPath = path.join(dir, 'prices.json')
@@ -90,23 +97,37 @@ async function loadNexusCableItems() {
         break
       } catch {}
     }
+    _nexusSource = items?.length ? 'fallback' : 'none'
+  } else {
+    _nexusSource = 'r2'
   }
 
   _nexusItemsCache = items ?? []
   _nexusItemsCachedAt = now
   _nexusExactMap = null
+  _nexusNormNames = null
   return _nexusItemsCache
+}
+
+function compact(s) {
+  return norm(s).replace(/\s/g, '')
 }
 
 function getExactMap(nexusItems) {
   if (_nexusExactMap !== null) return _nexusExactMap
   const map = new Map()
   for (const item of nexusItems) {
-    const k = norm(item.name)
+    const k = compact(item.name)
     if (!map.has(k)) map.set(k, item.price)
   }
   _nexusExactMap = map
   return map
+}
+
+function getNormNames(nexusItems) {
+  if (_nexusNormNames !== null) return _nexusNormNames
+  _nexusNormNames = nexusItems.map((item) => ({ n: compact(item.name), price: item.price }))
+  return _nexusNormNames
 }
 
 function loadCablesData() {
@@ -119,17 +140,20 @@ function loadCablesData() {
   return _cablesData
 }
 
-function matchMaterialPrice(cable, typeCable, items, exactMap) {
+function stripParens(s) {
+  return String(s || '').replace(/\(.*?\)/g, '').trim()
+}
+
+function matchMaterialPrice(cable, typeCable, exactMap, normNames) {
   if (!cable && !typeCable) return undefined
-  const normCable = norm(cable)
-  const normType = norm(typeCable)
-  const fullKey = [normType, normCable].filter(Boolean).join(' ')
+  const nc = compact(cable)
+  const nt = compact(stripParens(typeCable))
+  const fullKey = nc && nt ? nt + nc : nc || nt
 
   if (exactMap.has(fullKey)) return exactMap.get(fullKey)
 
-  for (const item of items) {
-    const n = norm(item.name)
-    if (normCable && n.includes(normCable) && (!normType || n.includes(normType))) return item.price
+  for (const { n, price } of normNames) {
+    if (nc && n.includes(nc) && (!nt || n.includes(nt))) return price
   }
 
   return undefined
@@ -145,27 +169,28 @@ function matchPoseEntry(cable, cablesData) {
 }
 
 async function lookupCablePrices(compositeKeys, margin = MARGIN) {
-  const result = {}
-  if (!Array.isArray(compositeKeys) || compositeKeys.length === 0) return result
+  const prices = {}
+  const details = {}
+  if (!Array.isArray(compositeKeys) || compositeKeys.length === 0) return { prices, details, source: _nexusSource }
 
   const nexusItems = await loadNexusCableItems()
   const cablesData = loadCablesData()
   const exactMap = getExactMap(nexusItems)
+  const normNames = getNormNames(nexusItems)
 
   for (const key of compositeKeys) {
     const { cable, typeCable } = parseCableKey(key)
-
-    const materialPrice = matchMaterialPrice(cable, typeCable, nexusItems, exactMap)
-    if (materialPrice === undefined) continue
-
+    const mat = matchMaterialPrice(cable, typeCable, exactMap, normNames)
+    if (mat === undefined) continue
     const poseEntry = matchPoseEntry(cable, cablesData)
     if (!poseEntry) continue
-
-    const total = materialPrice * margin + poseEntry.pt_pose_value
-    if (total > 0) result[key] = total
+    const total = mat * margin + poseEntry.pt_pose_value
+    if (total <= 0) continue
+    prices[key] = total
+    details[key] = { mat, margin, tpsPose: poseEntry.tps_pose, puPose: poseEntry.pu_pose, ptPose: poseEntry.pt_pose_value }
   }
 
-  return result
+  return { prices, details, source: _nexusSource }
 }
 
 module.exports = { lookupCablePrices }
